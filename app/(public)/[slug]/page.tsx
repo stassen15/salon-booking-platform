@@ -315,7 +315,7 @@ function ServiceCard({
   );
 }
 
-// ─── Date picker ───────────────────────────────────────────────────────────────
+// ─── Date picker (Desktop Mouse + Mobile Swipe + Week Nav + Calendar Jump) ──
 
 function DatePicker({
   selected,
@@ -324,120 +324,261 @@ function DatePicker({
   selected: Date;
   onSelect: (d: Date) => void;
 }) {
-  const today = new Date();
-  const days = Array.from({ length: 14 }, (_, i) => addDays(today, i));
+  const [baseDate, setBaseDate] = useState<Date>(() => new Date());
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const days = Array.from({ length: 14 }, (_, i) => addDays(baseDate, i));
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const canGoBack = baseDate > today;
+
+  function handlePrevWeek() {
+    setBaseDate((prev) => {
+      const next = addDays(prev, -7);
+      return next < today ? today : next;
+    });
+  }
+
+  function handleNextWeek() {
+    setBaseDate((prev) => addDays(prev, 7));
+  }
+
+  function handleNativeDateChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.value) return;
+    const [y, m, d] = e.target.value.split("-").map(Number);
+    const chosen = new Date(y, m - 1, d);
+    onSelect(chosen);
+    setBaseDate(chosen);
+  }
+
+  const monthYearLabel = format(selected, "MMMM yyyy");
+
   return (
-    <div
-      ref={scrollRef}
-      className="flex gap-2.5 overflow-x-auto pb-2 snap-x snap-mandatory"
-      style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
-    >
-      {days.map((day) => {
-        const isSelected = isSameDay(day, selected);
-        return (
+    <div className="space-y-2.5">
+      {/* Navigation Header */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-[#1D1D1F]">
+          {monthYearLabel}
+        </span>
+        <div className="flex items-center gap-1">
           <button
-            key={day.toISOString()}
-            onClick={() => onSelect(day)}
-            className={`snap-start flex-shrink-0 flex flex-col items-center justify-center w-14 min-h-[72px] rounded-2xl border transition-all duration-150 active:scale-95 ${
-              isSelected
-                ? "border-[#1D1D1F] bg-[#1D1D1F] text-white shadow-sm"
-                : "border-zinc-200/80 bg-white text-[#1D1D1F] hover:border-zinc-300"
-            }`}
+            type="button"
+            disabled={!canGoBack}
+            onClick={handlePrevWeek}
+            aria-label="Previous week"
+            className="p-1.5 rounded-lg text-zinc-600 hover:text-[#1D1D1F] hover:bg-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed transition"
           >
-            <span
-              className={`text-[10px] font-semibold uppercase tracking-wider ${
-                isSelected ? "text-zinc-300" : "text-zinc-400"
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={handleNextWeek}
+            aria-label="Next week"
+            className="p-1.5 rounded-lg text-zinc-600 hover:text-[#1D1D1F] hover:bg-zinc-100 transition"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <div className="relative inline-flex items-center ml-0.5">
+            <button
+              type="button"
+              onClick={() => {
+                if (dateInputRef.current?.showPicker) {
+                  dateInputRef.current.showPicker();
+                } else {
+                  dateInputRef.current?.click();
+                }
+              }}
+              aria-label="Pick date from calendar"
+              className="p-1.5 rounded-lg text-zinc-600 hover:text-[#1D1D1F] hover:bg-zinc-100 transition"
+              title="Pick a date"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="18" rx="2" strokeWidth={2} />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 2v4M8 2v4M3 10h18" />
+              </svg>
+            </button>
+            <input
+              ref={dateInputRef}
+              type="date"
+              min={toLocalDateString(today)}
+              onChange={handleNativeDateChange}
+              className="sr-only absolute opacity-0 pointer-events-none"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Date Pills Slider */}
+      <div
+        ref={scrollRef}
+        className="flex gap-2.5 overflow-x-auto pb-2 pt-1 snap-x snap-mandatory scroll-smooth"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
+      >
+        {days.map((day) => {
+          const isSelected = isSameDay(day, selected);
+          return (
+            <button
+              key={day.toISOString()}
+              type="button"
+              onClick={() => onSelect(day)}
+              className={`snap-start flex-shrink-0 flex flex-col items-center justify-center w-14 min-h-[72px] rounded-2xl transition-all duration-150 active:scale-95 ${
+                isSelected
+                  ? "bg-[#1D1D1F] text-white shadow-[0_2px_8px_rgba(0,0,0,0.12)] scale-[1.02] border border-[#1D1D1F]"
+                  : "bg-white text-zinc-700 border border-zinc-200/80 hover:border-zinc-300 hover:bg-zinc-50"
               }`}
             >
-              {format(day, "EEE")}
-            </span>
-            <span className="text-lg font-bold mt-0.5">{format(day, "d")}</span>
-            <span className={`text-[10px] ${isSelected ? "text-zinc-300" : "text-zinc-400"}`}>
-              {format(day, "MMM")}
-            </span>
-          </button>
-        );
-      })}
+              <span
+                className={`text-[10px] font-semibold uppercase tracking-wider ${
+                  isSelected ? "text-zinc-300" : "text-zinc-400"
+                }`}
+              >
+                {format(day, "EEE")}
+              </span>
+              <span className="text-lg font-bold mt-0.5">{format(day, "d")}</span>
+              <span className={`text-[10px] ${isSelected ? "text-zinc-300" : "text-zinc-400"}`}>
+                {format(day, "MMM")}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-// ─── Time slot grid ────────────────────────────────────────────────────────────
+// ─── Time slot grid (Morning / Afternoon Hierarchy & Proactive Recovery) ─────
 
 function TimeSlotGrid({
   results,
   selectedSlot,
   selectedStaffId,
   onSelect,
+  onJumpToNextAvailable,
 }: {
   results: StaffSlotResult[];
   selectedSlot: AvailableSlot | null;
   selectedStaffId: string | null;
   onSelect: (slot: AvailableSlot, staffId: string) => void;
+  onJumpToNextAvailable: () => void;
 }) {
   const rows = selectedStaffId
     ? results.filter((r) => r.staffId === selectedStaffId)
     : results;
 
-  if (rows.length === 0 || rows.every((r) => r.slots.length === 0)) {
+  const totalSlots = rows.reduce((acc, r) => acc + r.slots.length, 0);
+
+  if (rows.length === 0 || totalSlots === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 text-zinc-400">
-        <svg
-          className="w-10 h-10 mb-2 opacity-30"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      <div className="py-8 text-center">
+        <p className="text-xs text-zinc-400">No slots open on this day</p>
+        <button
+          type="button"
+          onClick={onJumpToNextAvailable}
+          className="mt-2 text-xs font-semibold text-[#1D1D1F] underline underline-offset-4"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-          />
-        </svg>
-        <p className="font-semibold text-xs text-zinc-600">No slots available</p>
-        <p className="text-xs text-zinc-400 mt-0.5">Try selecting another date</p>
+          Jump to next open date &rarr;
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {rows.map((staffRow) => (
-        <div key={staffRow.staffId}>
-          {results.length > 1 && (
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">
-              {staffRow.staffName}
-            </p>
-          )}
-          {staffRow.slots.length === 0 ? (
-            <p className="text-xs text-zinc-400 py-1">No slots for this barber</p>
-          ) : (
-            <div className="grid grid-cols-3 gap-2">
-              {staffRow.slots.map((slot) => {
-                const isSelected =
-                  selectedSlot?.start === slot.start &&
-                  selectedStaffId === staffRow.staffId;
-                return (
-                  <button
-                    key={slot.start}
-                    onClick={() => onSelect(slot, staffRow.staffId)}
-                    className={`min-h-[44px] py-2 px-1 rounded-xl border text-xs font-semibold transition-all duration-150 active:scale-95 ${
-                      isSelected
-                        ? "border-[#1D1D1F] bg-[#1D1D1F] text-white shadow-sm"
-                        : "border-zinc-200/80 bg-white text-[#1D1D1F] hover:border-zinc-300"
-                    }`}
-                  >
-                    {formatTimeLocal(slot.start)}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      ))}
+    <div className="space-y-6">
+      {rows.map((staffRow) => {
+        const morningSlots: AvailableSlot[] = [];
+        const afternoonSlots: AvailableSlot[] = [];
+
+        staffRow.slots.forEach((slot) => {
+          const timeStr = formatTimeLocal(slot.start);
+          const hour = parseInt(timeStr.split(":")[0], 10);
+          if (hour < 12) {
+            morningSlots.push(slot);
+          } else {
+            afternoonSlots.push(slot);
+          }
+        });
+
+        return (
+          <div key={staffRow.staffId} className="space-y-4">
+            {results.length > 1 && (
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                {staffRow.staffName}
+              </p>
+            )}
+
+            {staffRow.slots.length === 0 ? (
+              <p className="text-xs text-zinc-400 py-1">No slots for this barber</p>
+            ) : (
+              <>
+                {morningSlots.length > 0 && (
+                  <div>
+                    <span className="block text-[10px] font-bold tracking-wider uppercase text-zinc-400 mb-2">
+                      Morning
+                    </span>
+                    <div className="grid grid-cols-3 gap-2">
+                      {morningSlots.map((slot) => {
+                        const isSelected =
+                          selectedSlot?.start === slot.start &&
+                          selectedStaffId === staffRow.staffId;
+                        return (
+                          <button
+                            key={slot.start}
+                            type="button"
+                            onClick={() => onSelect(slot, staffRow.staffId)}
+                            className={`py-3 px-2 rounded-xl text-xs font-semibold font-mono text-center border transition-all active:scale-95 ${
+                              isSelected
+                                ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm scale-[1.02]"
+                                : "bg-white text-zinc-700 border-zinc-200/90 hover:border-[#1D1D1F]"
+                            }`}
+                          >
+                            {formatTimeLocal(slot.start)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {afternoonSlots.length > 0 && (
+                  <div>
+                    <span className="block text-[10px] font-bold tracking-wider uppercase text-zinc-400 mb-2">
+                      Afternoon / Evening
+                    </span>
+                    <div className="grid grid-cols-3 gap-2">
+                      {afternoonSlots.map((slot) => {
+                        const isSelected =
+                          selectedSlot?.start === slot.start &&
+                          selectedStaffId === staffRow.staffId;
+                        return (
+                          <button
+                            key={slot.start}
+                            type="button"
+                            onClick={() => onSelect(slot, staffRow.staffId)}
+                            className={`py-3 px-2 rounded-xl text-xs font-semibold font-mono text-center border transition-all active:scale-95 ${
+                              isSelected
+                                ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm scale-[1.02]"
+                                : "bg-white text-zinc-700 border-zinc-200/90 hover:border-[#1D1D1F]"
+                            }`}
+                          >
+                            {formatTimeLocal(slot.start)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -716,281 +857,371 @@ export default function BookingPage() {
     );
   }
 
-  // ── Steps 1–3: Apple-Grade Boutique Link-in-Bio Funnel ──
+  // ── Steps 1–3: Responsive Boutique Link-in-Bio Funnel ──
+  const monogram =
+    salon.name
+      .split(" ")
+      .map((w) => w[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "S";
+
   return (
     <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F]">
-      <div className="max-w-md mx-auto px-4 pt-8 pb-32">
-        {/* 1. Salon Brand Identity & Profile Header */}
-        <BoutiqueSalonHeader
-          name={salon.name}
-          address={salon.address}
-          district={salon.district}
-        />
-
-        {/* 2. Main White Card */}
-        <div className="bg-white rounded-3xl border border-black/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.04)] p-5 sm:p-6 mb-4">
-          {/* iOS-style Segmented Progress Bar */}
-          <div className="flex items-center gap-1.5 mb-5">
-            <div className={`h-1 flex-1 rounded-full ${step >= 1 ? "bg-[#1D1D1F]" : "bg-zinc-200"} transition-all`} />
-            <div className={`h-1 flex-1 rounded-full ${step >= 2 ? "bg-[#1D1D1F]" : "bg-zinc-200"} transition-all`} />
-            <div className={`h-1 flex-1 rounded-full ${step >= 3 ? "bg-[#1D1D1F]" : "bg-zinc-200"} transition-all`} />
+      <div className="max-w-md md:max-w-5xl mx-auto px-4 md:px-8 pt-6 md:py-12 md:grid md:grid-cols-12 md:gap-8 items-start pb-32">
+        {/* Mobile Header (Hidden on Desktop) */}
+        <div className="flex flex-col items-center text-center mb-6 md:hidden">
+          <div className="h-14 w-14 rounded-full bg-[#1D1D1F] text-white flex items-center justify-center font-bold text-lg shadow-sm">
+            {monogram}
           </div>
+          <h1 className="text-xl font-bold tracking-tight text-[#1D1D1F] mt-2">
+            {salon.name}
+          </h1>
+          <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-600 font-medium mt-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Open for bookings
+          </div>
+          <p className="text-xs text-zinc-400 text-center mt-1">
+            {salon.address}{salon.district ? `, ${salon.district}` : ""}
+          </p>
+        </div>
 
-          {/* ── STEP 1: Service Selection ── */}
-          {step === 1 && (
-            <div>
-              <div className="mb-4">
-                <h2 className="text-lg font-bold tracking-tight text-[#1D1D1F]">Choose a Service</h2>
-                <p className="text-xs text-[#86868B] mt-0.5">Select what you&apos;d like done today</p>
+        {/* Desktop Left Column (Persistent Profile & Appointment Summary) */}
+        <div className="hidden md:block md:col-span-4 sticky top-8">
+          <div className="bg-white rounded-3xl border border-zinc-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] p-6 space-y-6">
+            {/* Salon Profile */}
+            <div className="flex flex-col items-start text-left">
+              <div className="h-14 w-14 rounded-full bg-[#1D1D1F] text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                {monogram}
               </div>
-
-              <div className="space-y-2.5">
-                {services.map((service) => (
-                  <ServiceCard
-                    key={service.id}
-                    service={service}
-                    selected={selectedService?.id === service.id}
-                    onSelect={() => setSelectedService(service)}
-                  />
-                ))}
+              <h1 className="text-xl font-bold tracking-tight text-[#1D1D1F] mt-3">
+                {salon.name}
+              </h1>
+              <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium mt-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Open for bookings
               </div>
+              <p className="text-xs text-zinc-400 mt-1">
+                {salon.address}{salon.district ? `, ${salon.district}` : ""}
+              </p>
             </div>
-          )}
 
-          {/* ── STEP 2: Date & Time Selection ── */}
-          {step === 2 && (
-            <div>
-              <div className="mb-4">
-                <h2 className="text-lg font-bold tracking-tight text-[#1D1D1F]">Pick a Date &amp; Time</h2>
-                <p className="text-xs text-[#86868B] mt-0.5">
-                  {selectedService?.name} &bull; {selectedService?.duration_minutes} min
+            {/* Persistent Appointment Summary */}
+            <div className="pt-5 border-t border-zinc-100 space-y-3">
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                Appointment Summary
+              </h3>
+              {selectedService ? (
+                <div className="space-y-3 text-xs">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-sm text-[#1D1D1F]">{selectedService.name}</p>
+                      <p className="text-zinc-500 mt-0.5">⏱ {selectedService.duration_minutes} min</p>
+                    </div>
+                    <p className="font-mono font-bold text-sm text-[#1D1D1F]">Rs {selectedService.price_mur}</p>
+                  </div>
+
+                  {selectedSlot ? (
+                    <div className="pt-2.5 border-t border-zinc-100 flex items-center justify-between text-zinc-600">
+                      <span>Time Slot</span>
+                      <span className="font-semibold text-[#1D1D1F] font-mono">
+                        {formatDateLabel(new Date(selectedSlot.start))} · {formatTimeLocal(selectedSlot.start)}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-zinc-400 pt-2 border-t border-zinc-100 italic">
+                      Select date &amp; time in Step 2
+                    </p>
+                  )}
+
+                  {selectedService.deposit_required_mur > 0 && (
+                    <div className="pt-2 flex items-center justify-between text-[11px] text-amber-800 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200/60">
+                      <span className="font-medium">Deposit Required</span>
+                      <span className="font-bold font-mono">Rs {depositAmount}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-zinc-400 py-2">
+                  No service selected yet. Choose a service to begin.
                 </p>
-              </div>
+              )}
+            </div>
+          </div>
+        </div>
 
-              <div className="space-y-5">
-                <div>
-                  <p className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-2.5">
-                    Date
-                  </p>
-                  <DatePicker selected={selectedDate} onSelect={setSelectedDate} />
+        {/* Right Column: Interactive Booking Step Card */}
+        <div className="col-span-12 md:col-span-8">
+          <div className="bg-white rounded-3xl border border-zinc-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] p-5 sm:p-8 mb-4">
+            {/* iOS-style Segmented Progress Bar */}
+            <div className="flex items-center gap-1.5 mb-5">
+              <div className={`h-1 flex-1 rounded-full ${step >= 1 ? "bg-[#1D1D1F]" : "bg-zinc-200"} transition-all`} />
+              <div className={`h-1 flex-1 rounded-full ${step >= 2 ? "bg-[#1D1D1F]" : "bg-zinc-200"} transition-all`} />
+              <div className={`h-1 flex-1 rounded-full ${step >= 3 ? "bg-[#1D1D1F]" : "bg-zinc-200"} transition-all`} />
+            </div>
+
+            {/* ── STEP 1: Service Selection ── */}
+            {step === 1 && (
+              <div>
+                <div className="mb-4">
+                  <h2 className="text-lg font-bold tracking-tight text-[#1D1D1F]">Choose a Service</h2>
+                  <p className="text-xs text-[#86868B] mt-0.5">Select what you&apos;d like done today</p>
                 </div>
 
-                {catalog.staff.length > 1 && (
+                <div className="space-y-2.5">
+                  {services.map((service) => (
+                    <ServiceCard
+                      key={service.id}
+                      service={service}
+                      selected={selectedService?.id === service.id}
+                      onSelect={() => setSelectedService(service)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 2: Date & Time Selection ── */}
+            {step === 2 && (
+              <div>
+                <div className="mb-4">
+                  <h2 className="text-lg font-bold tracking-tight text-[#1D1D1F]">Pick a Date &amp; Time</h2>
+                  <p className="text-xs text-[#86868B] mt-0.5">
+                    {selectedService?.name} &bull; {selectedService?.duration_minutes} min
+                  </p>
+                </div>
+
+                <div className="space-y-5">
                   <div>
-                    <p className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-2">
-                      Barber / Stylist
+                    <p className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-2.5">
+                      Date
                     </p>
-                    <div className="flex gap-1.5 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedStaffId(null);
-                          setSelectedSlot(null);
-                        }}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                          selectedStaffId === null
-                            ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
-                            : "bg-[#F5F5F7] text-[#1D1D1F] border-transparent hover:bg-zinc-200"
-                        }`}
-                      >
-                        Any Available
-                      </button>
-                      {catalog.staff.map((s) => (
+                    <DatePicker selected={selectedDate} onSelect={setSelectedDate} />
+                  </div>
+
+                  {catalog.staff.length > 1 && (
+                    <div>
+                      <p className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-2">
+                        Barber / Stylist
+                      </p>
+                      <div className="flex gap-1.5 flex-wrap">
                         <button
-                          key={s.id}
                           type="button"
                           onClick={() => {
-                            setSelectedStaffId(s.id);
+                            setSelectedStaffId(null);
                             setSelectedSlot(null);
                           }}
                           className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                            selectedStaffId === s.id
+                            selectedStaffId === null
                               ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
                               : "bg-[#F5F5F7] text-[#1D1D1F] border-transparent hover:bg-zinc-200"
                           }`}
                         >
-                          {s.name}
+                          Any Available
                         </button>
-                      ))}
+                        {catalog.staff.map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedStaffId(s.id);
+                              setSelectedSlot(null);
+                            }}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                              selectedStaffId === s.id
+                                ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
+                                : "bg-[#F5F5F7] text-[#1D1D1F] border-transparent hover:bg-zinc-200"
+                            }`}
+                          >
+                            {s.name}
+                          </button>
+                        ))}
+                      </div>
                     </div>
+                  )}
+
+                  <div>
+                    <p className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-2.5">
+                      Available Times
+                    </p>
+                    {loadingSlots ? (
+                      <div className="flex items-center justify-center py-10">
+                        <div className="h-6 w-6 rounded-full border-2 border-zinc-300 border-t-[#1D1D1F] animate-spin" />
+                      </div>
+                    ) : slotsError ? (
+                      <div className="py-6 text-center">
+                        <p className="text-red-500 text-xs">{slotsError}</p>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDate(new Date(selectedDate))}
+                          className="mt-2 text-xs text-zinc-500 underline"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    ) : slotsData ? (
+                      <TimeSlotGrid
+                        results={slotsData.results}
+                        selectedSlot={selectedSlot}
+                        selectedStaffId={selectedStaffId}
+                        onSelect={(slot, staffId) => {
+                          setSelectedSlot(slot);
+                          setSelectedStaffId(staffId);
+                        }}
+                        onJumpToNextAvailable={() => setSelectedDate((prev) => addDays(prev, 1))}
+                      />
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 3: Customer Details & Juice Deposit ── */}
+            {step === 3 && (
+              <div>
+                <div className="mb-4">
+                  <h2 className="text-lg font-bold tracking-tight text-[#1D1D1F]">Your Details</h2>
+                  <p className="text-xs text-[#86868B] mt-0.5">Almost done — tell us who you are</p>
+                </div>
+
+                {selectedService && selectedSlot && (
+                  <div className="bg-[#1D1D1F] text-white rounded-2xl p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)] flex items-center justify-between mb-5">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm truncate">{selectedService.name}</p>
+                      <p className="text-zinc-300 text-xs mt-0.5">
+                        {formatDateLabel(new Date(selectedSlot.start))} &bull; {formatTimeLocal(selectedSlot.start)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setStep(2)}
+                      className="text-xs text-zinc-400 hover:text-white underline shrink-0"
+                    >
+                      Change
+                    </button>
                   </div>
                 )}
 
-                <div>
-                  <p className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-2.5">
-                    Available Times
-                  </p>
-                  {loadingSlots ? (
-                    <div className="flex items-center justify-center py-10">
-                      <div className="h-6 w-6 rounded-full border-2 border-zinc-300 border-t-[#1D1D1F] animate-spin" />
-                    </div>
-                  ) : slotsError ? (
-                    <div className="py-6 text-center">
-                      <p className="text-red-500 text-xs">{slotsError}</p>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedDate(new Date(selectedDate))}
-                        className="mt-2 text-xs text-zinc-500 underline"
-                      >
-                        Retry
-                      </button>
-                    </div>
-                  ) : slotsData ? (
-                    <TimeSlotGrid
-                      results={slotsData.results}
-                      selectedSlot={selectedSlot}
-                      selectedStaffId={selectedStaffId}
-                      onSelect={(slot, staffId) => {
-                        setSelectedSlot(slot);
-                        setSelectedStaffId(staffId);
-                      }}
+                <div className="space-y-3.5">
+                  <div className="bg-white border border-zinc-200 focus-within:border-[#1D1D1F] focus-within:ring-2 focus-within:ring-black/5 rounded-xl p-3 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                    <label className="block text-[10px] font-bold tracking-wider uppercase text-zinc-400 mb-1">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="e.g. Ravi Jugurnath"
+                      className="w-full bg-transparent text-sm font-medium text-zinc-900 placeholder:text-zinc-300 focus:outline-none"
                     />
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── STEP 3: Customer Details & Juice Deposit ── */}
-          {step === 3 && (
-            <div>
-              <div className="mb-4">
-                <h2 className="text-lg font-bold tracking-tight text-[#1D1D1F]">Your Details</h2>
-                <p className="text-xs text-[#86868B] mt-0.5">Almost done — tell us who you are</p>
-              </div>
-
-              {selectedService && selectedSlot && (
-                <div className="flex items-center justify-between gap-3 bg-[#1D1D1F] text-white rounded-2xl p-3.5 mb-5 shadow-sm">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-sm truncate">{selectedService.name}</p>
-                    <p className="text-zinc-300 text-xs mt-0.5">
-                      {formatDateLabel(new Date(selectedSlot.start))} &bull; {formatTimeLocal(selectedSlot.start)}
-                    </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setStep(2)}
-                    className="text-xs text-zinc-400 hover:text-white underline shrink-0"
-                  >
-                    Change
-                  </button>
-                </div>
-              )}
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#86868B] mb-1.5">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="e.g. Ravi Jugurnath"
-                    className="w-full px-3.5 py-3 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-sm text-[#1D1D1F] placeholder:text-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1D1D1F] transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#86868B] mb-1.5">
-                    WhatsApp / Phone
-                  </label>
-                  <input
-                    type="tel"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder="+230 5XXX XXXX"
-                    className="w-full px-3.5 py-3 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-sm text-[#1D1D1F] placeholder:text-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1D1D1F] transition font-mono"
-                  />
-                  <p className="text-[11px] text-[#86868B] mt-1">
-                    Booking confirmation &amp; reminders will be sent to this number
-                  </p>
-                </div>
-
-                {depositRequired && (
-                  <div className="rounded-2xl border border-amber-200/80 bg-amber-50/60 p-4 space-y-3">
-                    <div className="flex items-start gap-2.5">
-                      <div className="h-5 w-5 rounded-full bg-[#FF9500] text-white flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">
-                        !
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-wider text-amber-900">
-                          MCB Juice Deposit Required
-                        </p>
-                        <p className="text-xs text-amber-800 mt-0.5">
-                          A deposit of <span className="font-bold font-mono">Rs {depositAmount}</span> must be paid via MCB Juice to lock in your slot.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="bg-white rounded-xl border border-amber-200/60 p-3 space-y-2 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="text-zinc-500">Send to Juice number</span>
-                        <span className="font-bold text-[#1D1D1F] font-mono">{juicePhone ?? "—"}</span>
-                      </div>
-                      {juiceAccountName && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-zinc-500">Account name</span>
-                          <span className="font-semibold text-[#1D1D1F]">{juiceAccountName}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between">
-                        <span className="text-zinc-500">Amount</span>
-                        <span className="font-bold text-emerald-600 font-mono">Rs {depositAmount}</span>
-                      </div>
-
-                      {juiceDeepLink && juicePhone && (
-                        <div className="mt-3 flex items-center gap-3 border-t border-amber-100 pt-3">
-                          <Image
-                            src={`/api/v1/public/juice-qr?phone=${encodeURIComponent(juicePhone)}&amount=${depositAmount}`}
-                            alt="MCB Juice payment QR"
-                            width={72}
-                            height={72}
-                            className="h-18 w-18 rounded-lg border border-amber-200"
-                          />
-                          <div className="flex-1">
-                            <a
-                              href={juiceDeepLink}
-                              className="block rounded-xl bg-[#1D1D1F] px-3 py-2 text-center text-xs font-semibold text-white shadow-sm hover:bg-black transition active:scale-95"
-                            >
-                              Pay via MCB Juice
-                            </a>
-                            <p className="mt-1 text-[10px] text-amber-700">Or scan QR then enter Juice reference below</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold uppercase tracking-wider text-amber-900 mb-1">
-                        Juice Transaction Reference
+                  <div className="space-y-1">
+                    <div className="bg-white border border-zinc-200 focus-within:border-[#1D1D1F] focus-within:ring-2 focus-within:ring-black/5 rounded-xl p-3 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                      <label className="block text-[10px] font-bold tracking-wider uppercase text-zinc-400 mb-1">
+                        WhatsApp / Phone
                       </label>
                       <input
-                        type="text"
-                        value={juiceRef}
-                        onChange={(e) => setJuiceRef(e.target.value)}
-                        placeholder="e.g. TXN123456789"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-amber-300 text-sm text-[#1D1D1F] placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#1D1D1F] transition font-mono"
+                        type="tel"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        placeholder="+230 5XXX XXXX"
+                        className="w-full bg-transparent text-sm font-medium text-zinc-900 placeholder:text-zinc-300 focus:outline-none font-mono"
                       />
-                      <p className="text-[10px] text-amber-700 mt-1">Found in your MCB Juice receipt / SMS notification</p>
                     </div>
+                    <p className="text-[11px] text-[#86868B] px-1">
+                      Booking confirmation &amp; reminders will be sent here
+                    </p>
+                  </div>
+
+                  {depositRequired && (
+                    <div className="rounded-2xl border border-amber-200/80 bg-amber-50/60 p-4 space-y-3">
+                      <div className="flex items-start gap-2.5">
+                        <div className="h-5 w-5 rounded-full bg-[#FF9500] text-white flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">
+                          !
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wider text-amber-900">
+                            MCB Juice Deposit Required
+                          </p>
+                          <p className="text-xs text-amber-800 mt-0.5">
+                            A deposit of <span className="font-bold font-mono">Rs {depositAmount}</span> must be paid via MCB Juice to lock in your slot.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-xl border border-amber-200/60 p-3 space-y-2 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-zinc-500">Send to Juice number</span>
+                          <span className="font-bold text-[#1D1D1F] font-mono">{juicePhone ?? "—"}</span>
+                        </div>
+                        {juiceAccountName && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-zinc-500">Account name</span>
+                            <span className="font-semibold text-[#1D1D1F]">{juiceAccountName}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between">
+                          <span className="text-zinc-500">Amount</span>
+                          <span className="font-bold text-emerald-600 font-mono">Rs {depositAmount}</span>
+                        </div>
+
+                        {juiceDeepLink && juicePhone && (
+                          <div className="mt-3 flex items-center gap-3 border-t border-amber-100 pt-3">
+                            <Image
+                              src={`/api/v1/public/juice-qr?phone=${encodeURIComponent(juicePhone)}&amount=${depositAmount}`}
+                              alt="MCB Juice payment QR"
+                              width={72}
+                              height={72}
+                              className="h-18 w-18 rounded-lg border border-amber-200"
+                            />
+                            <div className="flex-1">
+                              <a
+                                href={juiceDeepLink}
+                                className="block rounded-xl bg-[#1D1D1F] px-3 py-2 text-center text-xs font-semibold text-white shadow-sm hover:bg-black transition active:scale-95"
+                              >
+                                Pay via MCB Juice
+                              </a>
+                              <p className="mt-1 text-[10px] text-amber-700">Or scan QR then enter Juice reference below</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="bg-white border border-amber-300 focus-within:border-[#1D1D1F] focus-within:ring-2 focus-within:ring-black/5 rounded-xl p-3 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                          <label className="block text-[10px] font-bold tracking-wider uppercase text-amber-900 mb-1">
+                            Juice Transaction Reference
+                          </label>
+                          <input
+                            type="text"
+                            value={juiceRef}
+                            onChange={(e) => setJuiceRef(e.target.value)}
+                            placeholder="e.g. TXN123456789"
+                            className="w-full bg-transparent text-sm font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none font-mono"
+                          />
+                        </div>
+                        <p className="text-[10px] text-amber-700 px-1">Found in your MCB Juice receipt / SMS notification</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {submitError && (
+                  <div className="mt-4 rounded-xl bg-red-50 border border-red-200 px-3.5 py-2.5 text-xs text-red-600 font-medium">
+                    {submitError}
                   </div>
                 )}
               </div>
-
-              {submitError && (
-                <div className="mt-4 rounded-xl bg-red-50 border border-red-200 px-3.5 py-2.5 text-xs text-red-600 font-medium">
-                  {submitError}
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
       {/* 4. Frosted Sticky Action Bar */}
       <div className="fixed bottom-0 left-0 right-0 p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] backdrop-blur-xl bg-white/80 border-t border-zinc-200/60 z-30">
-        <div className="max-w-md mx-auto flex items-center gap-2">
+        <div className="max-w-md md:max-w-3xl mx-auto flex items-center gap-2">
           {step > 1 && (
             <button
               type="button"
