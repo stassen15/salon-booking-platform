@@ -583,7 +583,19 @@ export default function BookingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const json = await res.json();
+      const responseText = await res.text();
+      let json: { error?: string; booking?: BookingConfirmation } = {};
+      if (responseText.trim()) {
+        try {
+          json = JSON.parse(responseText) as typeof json;
+        } catch {
+          throw new Error(
+            res.ok
+              ? "The booking service returned an invalid response. Please try again."
+              : `Booking failed (${res.status}). Please try again.`,
+          );
+        }
+      }
       if (!res.ok || json.error) throw new Error(json.error ?? "Booking failed");
       setBooking(json.booking as BookingConfirmation);
       setStep(4);

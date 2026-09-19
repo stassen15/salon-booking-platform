@@ -26,6 +26,12 @@ export async function POST(request: Request) {
   }
 
   const input = parsed.data;
+  // Validate this before writing a booking. The token is returned with the
+  // response and is required for cancellation/rescheduling actions.
+  if (!process.env.BOOKING_ACTION_SECRET && !process.env.CRON_SECRET) {
+    return jsonError("Booking actions are not configured", 500);
+  }
+
   const admin = createAdminClient();
 
   const { data: salon, error: salonError } = await admin
