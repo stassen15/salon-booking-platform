@@ -28,7 +28,12 @@ export async function POST(request: Request) {
   const input = parsed.data;
   // Validate this before writing a booking. The token is returned with the
   // response and is required for cancellation/rescheduling actions.
-  if (!process.env.BOOKING_ACTION_SECRET && !process.env.CRON_SECRET) {
+  if (
+    !process.env.BOOKING_ACTION_SECRET &&
+    !process.env.CRON_SECRET &&
+    !process.env.SUPABASE_SECRET_KEY &&
+    !process.env.SUPABASE_SERVICE_ROLE_KEY
+  ) {
     return jsonError("Booking actions are not configured", 500);
   }
 
