@@ -40,7 +40,7 @@ export type ServiceInfo = {
 
 export type StaffInfo = { id: string; name: string };
 
-// ─── Lookups ──────────────────────────────────────────────────────────────────
+// ─── Lookups & Sorting ────────────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<BookingStatus, string> = {
   pending:   "Pending",
@@ -55,6 +55,24 @@ const PAYMENT_LABEL: Record<PaymentStatus, string> = {
   deposit_submitted: "Deposit Sent",
   paid_in_full:      "Paid",
 };
+
+const STATUS_SORT_ORDER: Record<BookingStatus, number> = {
+  confirmed: 1,
+  pending: 2,
+  completed: 3,
+  no_show: 4,
+  cancelled: 5,
+};
+
+function compareBookings(a: AdminBooking, b: AdminBooking): number {
+  const timeDiff = a.start_time.localeCompare(b.start_time);
+  if (timeDiff !== 0) return timeDiff;
+  // If start_time is identical: active/confirmed before cancelled/no-show
+  const orderA = STATUS_SORT_ORDER[a.status] ?? 99;
+  const orderB = STATUS_SORT_ORDER[b.status] ?? 99;
+  if (orderA !== orderB) return orderA - orderB;
+  return a.end_time.localeCompare(b.end_time);
+}
 
 // ─── Apple HIG Status Dot Indicators ──────────────────────────────────────────
 
@@ -559,75 +577,116 @@ function WalkInCard({
     setBusy(false);
   }
 
-  return (
-    <div
-      className={
-        "rounded-2xl border transition-all overflow-hidden " +
-        (busy ? "opacity-60 pointer-events-none " : "") +
-        (inChair
-          ? "border-[#34C759] shadow-[0_4px_20px_rgba(52,199,89,0.15)] bg-white"
-          : "border-black/[0.08] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] bg-white")
-      }
-      style={{
-        backgroundImage: inChair
-          ? undefined
-          : "repeating-linear-gradient(-45deg, #FFFFFF, #FFFFFF 12px, #F5F5F7 12px, #F5F5F7 24px)",
-      }}
-    >
-      {/* Active In-Chair Banner */}
-      {inChair && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-[#34C759] text-white text-[11px] font-semibold tracking-wider uppercase">
-          <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-          <span>In Chair &bull; Walk-in &bull; {minsRemaining} min remaining</span>
-        </div>
-      )}
-
-      <div className="p-5 space-y-3.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="text-xl font-semibold tracking-tight tabular-nums text-[#1D1D1F]">
-              {formatTimeMU(booking.start_time)} &ndash; {formatTimeMU(booking.end_time)}
+  // Active in-chair Walk-in (Hero treatment)
+  if (inChair) {
+    return (
+      <div
+        className={
+          "bg-white rounded-2xl border-2 border-emerald-500/40 shadow-[0_4px_20px_rgba(16,185,129,0.08)] p-5 relative overflow-hidden transition-all " +
+          (busy ? "opacity-60 pointer-events-none" : "")
+        }
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-100">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              IN CHAIR
             </span>
-            <span className="text-[#86868B]">&bull;</span>
-            <span className="text-xs font-semibold text-[#1D1D1F]">
-              {booking.customer_name || "Walk-in / Counter Hold"}
+            <span className="text-xs font-medium text-[#86868B]">
+              Ends at {formatTimeMU(booking.end_time)} &bull; {minsRemaining} min{minsRemaining === 1 ? "" : "s"} left
             </span>
           </div>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F5F5F7] text-xs font-medium text-[#1D1D1F]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#FF9500]" />
-            Counter Hold
+
+          <span className="font-mono font-semibold text-sm text-[#1D1D1F]">
+            <span className="text-xs font-normal text-[#86868B]">Rs </span>{servicePrice || 300}
           </span>
         </div>
 
-        <p className="text-xs text-[#86868B]">
-          Slot reserved for counter customer. Free this window or complete to record revenue.
-        </p>
+        <div className="pt-4 space-y-3">
+          <div>
+            <p className="text-lg font-bold text-[#1D1D1F]">Walk-in / Counter Hold</p>
+            <p className="text-xs text-[#86868B] mt-0.5">Counter client currently receiving service</p>
+          </div>
 
-        <div className="flex items-center gap-2 pt-1">
-          <button
-            onClick={handleCompleted}
-            disabled={busy}
-            className="flex-1 bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white font-medium text-xs rounded-xl px-4 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
-          >
-            <svg className="w-3.5 h-3.5 text-[#34C759]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-            </svg>
-            Mark Completed (+Rs {servicePrice || 300})
-          </button>
-          <button
-            onClick={handleRelease}
-            disabled={busy}
-            className="bg-[#F5F5F7] hover:bg-[#E8E8ED] active:scale-[0.98] text-[#1D1D1F] font-medium text-xs rounded-xl px-4 py-2.5 transition-all disabled:opacity-50"
-          >
-            Release Block
-          </button>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+            <button
+              onClick={handleCompleted}
+              disabled={busy}
+              className="bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white font-medium rounded-xl py-2.5 px-4 w-full sm:w-auto shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-all flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4 text-[#34C759]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+              Mark Completed &amp; Collect Rs {servicePrice || 300}
+            </button>
+            <button
+              onClick={handleRelease}
+              disabled={busy}
+              className="py-2.5 px-4 text-xs font-medium rounded-xl bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#1D1D1F] transition"
+            >
+              Release Block
+            </button>
+          </div>
         </div>
+      </div>
+    );
+  }
+
+  // Inactive / Upcoming Walk-in Hold (Distinctive Muted Stripes)
+  return (
+    <div
+      className={
+        "rounded-2xl border border-black/[0.08] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] bg-white p-5 space-y-3.5 transition-all overflow-hidden " +
+        (busy ? "opacity-60 pointer-events-none" : "")
+      }
+      style={{
+        backgroundImage: "repeating-linear-gradient(-45deg, #FFFFFF, #FFFFFF 12px, #F5F5F7 12px, #F5F5F7 24px)",
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <span className="text-xl font-semibold tracking-tight tabular-nums text-[#1D1D1F]">
+            {formatTimeMU(booking.start_time)} &ndash; {formatTimeMU(booking.end_time)}
+          </span>
+          <span className="text-[#86868B]">&bull;</span>
+          <span className="text-xs font-semibold text-[#1D1D1F]">
+            {booking.customer_name || "Walk-in / Counter Hold"}
+          </span>
+        </div>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F5F5F7] text-xs font-medium text-[#1D1D1F]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#FF9500]" />
+          Counter Hold
+        </span>
+      </div>
+
+      <p className="text-xs text-[#86868B]">
+        Slot reserved for counter customer. Free this window or complete to record revenue.
+      </p>
+
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          onClick={handleCompleted}
+          disabled={busy}
+          className="flex-1 bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white font-medium text-xs rounded-xl px-4 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+        >
+          <svg className="w-3.5 h-3.5 text-[#34C759]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
+          Mark Completed (+Rs {servicePrice || 300})
+        </button>
+        <button
+          onClick={handleRelease}
+          disabled={busy}
+          className="bg-[#F5F5F7] hover:bg-[#E8E8ED] active:scale-[0.98] text-[#1D1D1F] font-medium text-xs rounded-xl px-4 py-2.5 transition-all disabled:opacity-50"
+        >
+          Release Block
+        </button>
       </div>
     </div>
   );
 }
 
-// ─── Compact Completed Row (Apple Subdued) ────────────────────────────────────
+// ─── Compact Completed Row (Apple Subdued - No Strikethrough) ────────────────
 
 function CompletedRow({
   booking,
@@ -637,18 +696,30 @@ function CompletedRow({
   service: ServiceInfo | undefined;
 }) {
   return (
-    <div className="flex items-center justify-between py-2.5 px-4 bg-[#F5F5F7]/80 rounded-xl border border-black/[0.03] text-xs">
-      <span className="line-through text-[#86868B] truncate font-normal mr-2">
-        {formatTimeMU(booking.start_time)} – {formatTimeMU(booking.end_time)} &bull; {service?.name ?? "Service"}
-      </span>
-      <span className="shrink-0 text-[#1D1D1F] font-medium">
-        {booking.customer_name} &bull; <span className="text-[#86868B]">Rs </span>{service?.price_mur ?? 0} ✓
-      </span>
+    <div className="flex items-center justify-between py-2.5 px-4 bg-zinc-50/80 hover:bg-zinc-100/80 rounded-xl border border-zinc-200/50 text-xs transition-colors">
+      <div className="flex items-center gap-3 min-w-0">
+        <span className="font-mono text-zinc-400 shrink-0">
+          {formatTimeMU(booking.start_time)} – {formatTimeMU(booking.end_time)}
+        </span>
+        <span className="text-zinc-500 font-medium truncate">
+          {service?.name ?? "Service"}
+        </span>
+      </div>
+      <div className="flex items-center gap-2 shrink-0 ml-2">
+        <span className="text-zinc-600 font-medium truncate max-w-[120px] sm:max-w-[160px]">
+          {booking.customer_name}
+        </span>
+        <span className="text-zinc-400">&middot;</span>
+        <span className="font-mono text-zinc-500">Rs {service?.price_mur ?? 0}</span>
+        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold">
+          ✓
+        </span>
+      </div>
     </div>
   );
 }
 
-// ─── Compact Cancelled Row (Collapsible) ──────────────────────────────────────
+// ─── Compact Cancelled / No-Show Row (Calm & Subtle) ─────────────────────────
 
 function CancelledRow({
   booking,
@@ -665,40 +736,40 @@ function CancelledRow({
   onToggle: () => void;
   onInitiateRefundComplete: (booking: AdminBooking) => void;
 }) {
-  const waNum = waDigits(booking.customer_phone);
-  const waMsg = encodeURIComponent(
-    "Hi " + booking.customer_name + ", regarding your cancelled booking at our salon..."
-  );
+  const isNoShow = booking.status === "no_show";
 
   return (
-    <div className="rounded-2xl border border-black/[0.06] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02)] overflow-hidden transition-all">
+    <div className="opacity-60 hover:opacity-100 bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-100 rounded-xl transition-all overflow-hidden">
       {/* Clickable compact row header */}
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[#F5F5F7]/60 transition-colors"
+        className="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left transition-colors"
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F5F5F7] text-[10px] font-medium text-[#1D1D1F] shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B30]" />
-            Cancelled
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 shrink-0">
+            <span className={`w-1.5 h-1.5 rounded-full ${isNoShow ? "bg-zinc-400" : "bg-[#FF3B30]"}`} />
+            {isNoShow ? "No-Show" : "Cancelled"}
           </span>
-          <span className="text-xs text-[#86868B] font-normal line-through truncate">
-            {formatTimeMU(booking.start_time)} – {formatTimeMU(booking.end_time)} &bull; {service?.name ?? "Service"}
+          <span className="font-mono text-zinc-400 text-xs shrink-0">
+            {formatTimeMU(booking.start_time)} – {formatTimeMU(booking.end_time)}
+          </span>
+          <span className="text-zinc-500 text-xs font-normal truncate">
+            {service?.name ?? "Service"}
           </span>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs text-[#1D1D1F] font-medium truncate max-w-[110px] sm:max-w-[160px]">
+          <span className="text-zinc-600 text-xs font-medium truncate max-w-[110px] sm:max-w-[160px]">
             {booking.customer_name}
           </span>
           {booking.refund_status === "pending" && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#FF9500]/10 text-[#FF9500] shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#FF9500] animate-pulse" /> Refund Due
+            <span className="text-[10px] font-semibold text-[#FF9500] px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 shrink-0">
+              ⚠️ Refund Due
             </span>
           )}
           <svg
-            className={`w-4 h-4 text-[#86868B] transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+            className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -708,97 +779,46 @@ function CancelledRow({
         </div>
       </button>
 
-      {/* Expanded details */}
+      {/* Expanded calm details */}
       {expanded && (
-        <div className="px-5 pb-5 pt-2 space-y-3 border-t border-black/[0.04] bg-[#F5F5F7]/40">
-          {/* Barber & Price */}
-          <div className="flex items-center justify-between text-xs text-[#86868B] pt-1">
-            {staffMember ? (
-              <span>Barber: <strong className="text-[#1D1D1F] font-medium">{staffMember.name}</strong></span>
-            ) : <span />}
-            {service && (
-              <span className="text-[#1D1D1F] font-medium">Rs {service.price_mur}</span>
-            )}
+        <div className="px-4 pb-3 pt-1 space-y-2 border-t border-zinc-100 text-xs text-zinc-500 bg-white/50">
+          <div className="flex items-center justify-between pt-1">
+            <span>Client: <strong className="text-zinc-700">{booking.customer_name}</strong> ({booking.customer_phone})</span>
+            {staffMember && <span>Stylist: {staffMember.name}</span>}
           </div>
 
-          {/* Customer & Call / WA */}
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <p className="font-semibold text-[#1D1D1F] text-sm">{booking.customer_name}</p>
-              <p className="text-xs text-[#86868B]">{booking.customer_phone}</p>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <a
-                href={"tel:" + booking.customer_phone}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#1D1D1F] text-xs font-medium transition"
+          {booking.cancellation_reason && (
+            <p className="italic text-zinc-600 bg-zinc-50 p-2 rounded-lg border border-zinc-100">
+              &ldquo;{booking.cancellation_reason}&rdquo;
+            </p>
+          )}
+
+          {booking.cancelled_at && (
+            <p className="text-[11px] text-zinc-400">
+              Cancelled {booking.cancelled_by ? "by Salon" : "by Customer"} &bull; {formatTimeMU(booking.cancelled_at)}
+            </p>
+          )}
+
+          {booking.refund_status === "pending" && (
+            <div className="pt-2 border-t border-zinc-100 flex items-center justify-between gap-2">
+              <span className="font-semibold text-amber-800">
+                Deposit Refund Due: Rs {booking.deposit_required_mur || service?.deposit_required_mur || 0}
+              </span>
+              <button
+                type="button"
+                onClick={() => onInitiateRefundComplete(booking)}
+                className="px-2.5 py-1 rounded-lg bg-[#1D1D1F] text-white text-[11px] font-medium shadow-sm transition active:scale-95 shrink-0"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                Call
-              </a>
-              <a
-                href={"https://wa.me/" + waNum + "?text=" + waMsg}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#34C759]/10 hover:bg-[#34C759]/20 text-[#248A3D] text-xs font-medium transition"
-              >
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.098.546 4.14 1.587 5.945L.057 23.35a.99.99 0 001.244 1.206l5.526-1.493A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.9a9.9 9.9 0 01-5.031-1.37l-.36-.214-3.734 1.01 1.018-3.625-.234-.375A9.9 9.9 0 012.1 12C2.1 6.534 6.534 2.1 12 2.1S21.9 6.534 21.9 12 17.466 21.9 12 21.9z"/>
-                </svg>
-                WA
-              </a>
+                Record Refund
+              </button>
             </div>
-          </div>
+          )}
 
-          {/* Cancellation Info */}
-          <div className="rounded-xl bg-white border border-black/[0.06] p-3.5 space-y-2 text-xs">
-            <div className="flex items-center justify-between text-[#FF3B30] font-medium">
-              <span>Cancelled {booking.cancelled_by ? "by Salon" : "by Customer"}</span>
-              {booking.cancelled_at && (
-                <span className="text-[11px] text-[#86868B] font-normal">
-                  {formatTimeMU(booking.cancelled_at)}
-                </span>
-              )}
-            </div>
-            {booking.cancellation_reason && (
-              <p className="text-[#86868B] italic bg-[#F5F5F7] rounded-lg p-2.5">
-                &ldquo;{booking.cancellation_reason}&rdquo;
-              </p>
-            )}
-
-            {/* Refund Pending Action */}
-            {booking.refund_status === "pending" && (
-              <div className="pt-2 border-t border-black/[0.06] flex items-center justify-between gap-2">
-                <div>
-                  <p className="font-semibold text-[#FF9500]">
-                    Deposit Refund Due: Rs {booking.deposit_required_mur || service?.deposit_required_mur || 0}
-                  </p>
-                  <p className="text-[11px] text-[#86868B]">Client awaiting MCB Juice transfer</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onInitiateRefundComplete(booking)}
-                  className="px-3 py-1.5 rounded-xl bg-[#1D1D1F] hover:bg-[#2C2C2E] text-white text-xs font-medium shadow-sm transition active:scale-[0.98] shrink-0"
-                >
-                  Record Refund
-                </button>
-              </div>
-            )}
-
-            {/* Refund Completed */}
-            {booking.refund_status === "refunded" && (
-              <div className="pt-2 border-t border-black/[0.06] flex items-center gap-1.5 text-xs text-[#248A3D] font-medium">
-                <svg className="w-4 h-4 text-[#34C759] shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                <span>
-                  Deposit Refunded via Juice{booking.refund_reference ? ` (Ref: ${booking.refund_reference})` : ""}
-                </span>
-              </div>
-            )}
-          </div>
+          {booking.refund_status === "refunded" && (
+            <p className="text-emerald-700 text-[11px] font-medium">
+              ✓ Deposit Refunded via Juice{booking.refund_reference ? ` (Ref: ${booking.refund_reference})` : ""}
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -860,13 +880,13 @@ function BookingCard({
     setUpdating(false);
   }
 
-  // Tier 1: Completed → compact row
+  // Tier 1: Completed → compact calm row
   if (booking.status === "completed") {
     return <CompletedRow booking={booking} service={service} />;
   }
 
-  // Tier 2: Cancelled → collapsible compact row
-  if (booking.status === "cancelled") {
+  // Tier 2: Cancelled / No-Show → calm subtle row
+  if (booking.status === "cancelled" || booking.status === "no_show") {
     return (
       <CancelledRow
         booking={booking}
@@ -884,72 +904,79 @@ function BookingCard({
     return (
       <div
         className={
-          "rounded-2xl border-2 border-[#34C759]/80 bg-white shadow-[0_4px_24px_rgba(52,199,89,0.14)] overflow-hidden transition-all " +
+          "bg-white rounded-2xl border-2 border-emerald-500/40 shadow-[0_4px_20px_rgba(16,185,129,0.08)] p-5 relative overflow-hidden transition-all " +
           (updating ? "opacity-60 pointer-events-none" : "")
         }
       >
-        <div className="flex items-center gap-2 bg-[#34C759] text-white px-5 py-2 text-[11px] font-semibold tracking-wider uppercase">
-          <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-          <span>In Chair &bull; {minsRemaining} min remaining</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-100">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              IN CHAIR
+            </span>
+            <span className="text-xs font-medium text-[#86868B]">
+              Ends at {formatTimeMU(booking.end_time)} &bull; {minsRemaining} min{minsRemaining === 1 ? "" : "s"} left
+            </span>
+          </div>
+
+          <span className="font-mono font-semibold text-sm text-[#1D1D1F]">
+            <span className="text-xs font-normal text-[#86868B]">Rs </span>{service?.price_mur ?? 0}
+          </span>
         </div>
 
-        <div className="p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="text-xl font-semibold tracking-tight tabular-nums text-[#1D1D1F]">
-                {formatTimeMU(booking.start_time)} &ndash; {formatTimeMU(booking.end_time)}
-              </span>
-              <span className="text-[#86868B]">&bull;</span>
-              <span className="text-sm font-medium text-[#1D1D1F]">{service?.name ?? "Service"}</span>
-            </div>
-            {service && (
-              <span className="font-semibold text-sm text-[#1D1D1F]">
-                <span className="text-xs font-normal text-[#86868B]">Rs </span>{service.price_mur}
-              </span>
-            )}
-          </div>
-
-          {staffMember && (
-            <p className="text-xs text-[#86868B]">Stylist: <span className="text-[#1D1D1F] font-medium">{staffMember.name}</span></p>
-          )}
-
+        <div className="pt-4 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-semibold text-[#1D1D1F] text-base">{booking.customer_name}</p>
-              <p className="text-xs text-[#86868B]">{booking.customer_phone}</p>
+              <p className="text-lg font-bold text-[#1D1D1F]">{booking.customer_name}</p>
+              <p className="text-xs text-[#86868B] mt-0.5">
+                {service?.name ?? "Service"}{staffMember ? ` • Stylist: ${staffMember.name}` : ""}
+              </p>
             </div>
-            <a
-              href={"tel:" + booking.customer_phone}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#1D1D1F] text-xs font-medium transition"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-              </svg>
-              Call
-            </a>
+            <div className="flex items-center gap-1.5">
+              <a
+                href={"tel:" + booking.customer_phone}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#1D1D1F] text-xs font-medium transition"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                Call
+              </a>
+              <a
+                href={"https://wa.me/" + waNum + "?text=" + waMsg}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#34C759]/10 hover:bg-[#34C759]/20 text-[#248A3D] text-xs font-medium transition"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.098.546 4.14 1.587 5.945L.057 23.35a.99.99 0 001.244 1.206l5.526-1.493A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.9a9.9 9.9 0 01-5.031-1.37l-.36-.214-3.734 1.01 1.018-3.625-.234-.375A9.9 9.9 0 012.1 12C2.1 6.534 6.534 2.1 12 2.1S21.9 6.534 21.9 12 17.466 21.9 12 21.9z"/>
+                </svg>
+                WA
+              </a>
+            </div>
           </div>
 
-          <button
-            onClick={() => handleStatus("completed")}
-            disabled={updating}
-            className="w-full min-h-12 rounded-xl bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white font-medium text-sm shadow-[0_2px_6px_rgba(0,0,0,0.18)] transition-all flex items-center justify-center gap-2"
-          >
-            <svg className="w-4 h-4 text-[#34C759]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-            </svg>
-            Complete &amp; Collect Rs {service?.price_mur ?? 0}
-          </button>
-
-          <div className="flex gap-2 pt-0.5">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+            <button
+              onClick={() => handleStatus("completed")}
+              disabled={updating}
+              className="bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white font-medium rounded-xl py-2.5 px-4 w-full sm:w-auto shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-all flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4 text-[#34C759]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+              Mark Completed &amp; Collect Rs {service?.price_mur ?? 0}
+            </button>
             <button
               onClick={() => handleStatus("no_show")}
-              className="flex-1 py-1.5 text-xs font-medium rounded-lg bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#86868B] hover:text-[#1D1D1F] transition"
+              className="py-2.5 px-3.5 text-xs font-medium rounded-xl bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#86868B] hover:text-[#1D1D1F] transition"
             >
               No-Show
             </button>
             <button
               onClick={() => handleStatus("cancelled")}
-              className="flex-1 py-1.5 text-xs font-medium rounded-lg bg-[#F5F5F7] hover:bg-[#FF3B30]/10 text-[#86868B] hover:text-[#FF3B30] transition"
+              className="py-2.5 px-3.5 text-xs font-medium rounded-xl bg-[#F5F5F7] hover:bg-[#FF3B30]/10 text-[#86868B] hover:text-[#FF3B30] transition"
             >
               Cancel
             </button>
@@ -1141,7 +1168,7 @@ export default function DashboardClient({
   const [walkInLoading, setWalkInLoading] = useState(false);
   const [walkInNotice, setWalkInNotice]   = useState<string | null>(null);
 
-  // Live clock: update every 30 seconds as requested
+  // Live clock: update every 30 seconds
   const [clockTime, setClockTime] = useState<string>(nowTimeMU());
   const clockRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
@@ -1277,9 +1304,7 @@ export default function DashboardClient({
       const json = await res.json();
       if (!res.ok || json.error) { alert(json.error ?? "Could not block walk-in slot"); return; }
       const newBooking = json.booking as AdminBooking;
-      setBookings((bs) =>
-        [...bs, newBooking].sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-      );
+      setBookings((bs) => [...bs, newBooking].sort(compareBookings));
       setWalkInNotice(`Blocked ${formatTimeMU(newBooking.start_time)} – ${formatTimeMU(newBooking.end_time)} for Walk-in`);
       setTimeout(() => setWalkInNotice(null), 6000);
     } finally {
@@ -1308,8 +1333,10 @@ export default function DashboardClient({
     } catch { fetchBookings(selectedDate); }
   }
 
-  // ── Derived Filter & Metrics ──────────────────────────────────────────────
-  const filtered = bookings.filter((b) => {
+  // ── 1. Strict Chronological Sorting ───────────────────────────────────────
+  const sortedBookings = [...bookings].sort(compareBookings);
+
+  const filtered = sortedBookings.filter((b) => {
     if (filter === "confirmed") return b.status === "confirmed";
     if (filter === "deposit")   return b.payment_status === "deposit_submitted";
     if (filter === "refunds")   return b.refund_status === "pending";
@@ -1317,16 +1344,20 @@ export default function DashboardClient({
     return true;
   });
 
-  const activeBookings  = bookings.filter((b) => b.status !== "cancelled");
+  const activeBookings  = sortedBookings.filter((b) => b.status !== "cancelled");
   const estRevenue      = activeBookings.reduce((s, b) => s + (serviceMap[b.service_id]?.price_mur ?? 300), 0);
-  const pendingDeposits = bookings.filter((b) => b.payment_status === "deposit_submitted").length;
-  const pendingRefunds  = bookings.filter((b) => b.refund_status === "pending").length;
+  const pendingDeposits = sortedBookings.filter((b) => b.payment_status === "deposit_submitted").length;
+  const pendingRefunds  = sortedBookings.filter((b) => b.refund_status === "pending").length;
 
   const nowMs = Date.now();
 
-  // NOW scrubber: sits right before the first appointment that hasn't ended yet
+  // ── 2. Accurate NOW Scrubber Placement ────────────────────────────────────
+  // Inserts divider immediately above the ongoing active appointment or next upcoming appointment.
+  // Never allows past non-active appointments (whose start_time < nowMs) to render underneath.
   const nowDividerIndex: number = isToday
-    ? filtered.findIndex((b) => new Date(b.end_time).getTime() >= nowMs)
+    ? filtered.findIndex(
+        (b) => bookingIsInChair(b, nowMs) || new Date(b.start_time).getTime() >= nowMs
+      )
     : -1;
 
   // Up Next: earliest confirmed/pending appointment starting strictly in the future
@@ -1364,7 +1395,7 @@ export default function DashboardClient({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Live Clock: e.g. "14:05 • Grand Baie" */}
+          {/* Live Clock: e.g. "17:16 • Grand Baie" */}
           <div className="rounded-2xl bg-white border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] px-3.5 py-2 text-center">
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#34C759] animate-pulse" />
