@@ -542,7 +542,7 @@ function RefundCompleteModal({ booking, service, onClose, onConfirm }: RefundCom
   );
 }
 
-// ─── Walk-in Card (Distinctive Muted Stripes) ─────────────────────────────────
+// ─── Walk-in Card (Fine Milled Texture & Tactile Touch Targets) ───────────────
 
 function WalkInCard({
   booking,
@@ -608,21 +608,21 @@ function WalkInCard({
             <p className="text-xs text-[#86868B] mt-0.5">Counter client currently receiving service</p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+          <div className="flex flex-col sm:flex-row gap-2 mt-3">
             <button
               onClick={handleCompleted}
               disabled={busy}
-              className="bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white font-medium rounded-xl py-2.5 px-4 w-full sm:w-auto shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-all flex items-center justify-center gap-2"
+              className="flex-1 bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white font-medium rounded-xl py-2.5 px-4 shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <svg className="w-4 h-4 text-[#34C759]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
-              Mark Completed &amp; Collect Rs {servicePrice || 300}
+              ✓ Mark Completed (+Rs {servicePrice || 300})
             </button>
             <button
               onClick={handleRelease}
               disabled={busy}
-              className="py-2.5 px-4 text-xs font-medium rounded-xl bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#1D1D1F] transition"
+              className="py-2.5 px-4 text-xs font-medium rounded-xl bg-[#F5F5F7] hover:bg-[#E8E8ED] active:scale-[0.98] text-[#1D1D1F] transition-transform disabled:opacity-50"
             >
               Release Block
             </button>
@@ -632,15 +632,15 @@ function WalkInCard({
     );
   }
 
-  // Inactive / Upcoming Walk-in Hold (Distinctive Muted Stripes)
+  // Softened Walk-in Hold Card (Fine milled 45deg texture)
   return (
     <div
       className={
-        "rounded-2xl border border-black/[0.08] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] bg-white p-5 space-y-3.5 transition-all overflow-hidden " +
+        "rounded-2xl border border-zinc-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.02)] bg-white p-5 space-y-3.5 transition-all overflow-hidden " +
         (busy ? "opacity-60 pointer-events-none" : "")
       }
       style={{
-        backgroundImage: "repeating-linear-gradient(-45deg, #FFFFFF, #FFFFFF 12px, #F5F5F7 12px, #F5F5F7 24px)",
+        background: "repeating-linear-gradient(45deg, #fafafa, #fafafa 12px, #f4f4f5 12px, #f4f4f5 24px)",
       }}
     >
       <div className="flex items-center justify-between">
@@ -653,7 +653,7 @@ function WalkInCard({
             {booking.customer_name || "Walk-in / Counter Hold"}
           </span>
         </div>
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F5F5F7] text-xs font-medium text-[#1D1D1F]">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 border border-zinc-200/70 text-xs font-medium text-[#1D1D1F]">
           <span className="w-1.5 h-1.5 rounded-full bg-[#FF9500]" />
           Counter Hold
         </span>
@@ -663,21 +663,21 @@ function WalkInCard({
         Slot reserved for counter customer. Free this window or complete to record revenue.
       </p>
 
-      <div className="flex items-center gap-2 pt-1">
+      <div className="flex flex-col sm:flex-row gap-2 mt-3">
         <button
           onClick={handleCompleted}
           disabled={busy}
-          className="flex-1 bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white font-medium text-xs rounded-xl px-4 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+          className="flex-1 bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white font-medium text-xs rounded-xl px-4 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-transform flex items-center justify-center gap-1.5 disabled:opacity-50"
         >
           <svg className="w-3.5 h-3.5 text-[#34C759]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
           </svg>
-          Mark Completed (+Rs {servicePrice || 300})
+          ✓ Mark Completed (+Rs {servicePrice || 300})
         </button>
         <button
           onClick={handleRelease}
           disabled={busy}
-          className="bg-[#F5F5F7] hover:bg-[#E8E8ED] active:scale-[0.98] text-[#1D1D1F] font-medium text-xs rounded-xl px-4 py-2.5 transition-all disabled:opacity-50"
+          className="bg-[#F5F5F7] hover:bg-[#E8E8ED] active:scale-[0.98] text-[#1D1D1F] font-medium text-xs rounded-xl px-4 py-2.5 transition-transform disabled:opacity-50"
         >
           Release Block
         </button>
@@ -725,26 +725,23 @@ function CancelledRow({
   booking,
   service,
   staffMember,
-  expanded,
-  onToggle,
   onInitiateRefundComplete,
 }: {
   booking: AdminBooking;
   service: ServiceInfo | undefined;
   staffMember: StaffInfo | undefined;
-  expanded: boolean;
-  onToggle: () => void;
   onInitiateRefundComplete: (booking: AdminBooking) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const isNoShow = booking.status === "no_show";
 
   return (
-    <div className="opacity-60 hover:opacity-100 bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-100 rounded-xl transition-all overflow-hidden">
+    <div className="opacity-40 hover:opacity-90 transition-opacity bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-100 rounded-xl transition-all overflow-hidden">
       {/* Clickable compact row header */}
       <button
         type="button"
-        onClick={onToggle}
-        className="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left transition-colors"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between gap-3 px-3.5 py-2 text-left transition-colors"
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 shrink-0">
@@ -825,6 +822,54 @@ function CancelledRow({
   );
 }
 
+// ─── Grouped Cancelled Rows (Auto-Collapse 2+ Slots) ─────────────────────────
+
+function CancelledGroupRow({
+  bookings,
+  serviceMap,
+  staffMap,
+  onInitiateRefundComplete,
+}: {
+  bookings: AdminBooking[];
+  serviceMap: Record<string, ServiceInfo>;
+  staffMap: Record<string, StaffInfo>;
+  onInitiateRefundComplete: (booking: AdminBooking) => void;
+}) {
+  const [expandCancelled, setExpandCancelled] = useState(false);
+
+  return (
+    <div className="my-1">
+      <button
+        type="button"
+        onClick={() => setExpandCancelled(!expandCancelled)}
+        className="w-full flex items-center justify-between py-2 px-4 my-1.5 rounded-xl bg-zinc-50/50 hover:bg-zinc-100/60 border border-zinc-200/40 text-xs text-zinc-400 transition-all"
+      >
+        <span className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-zinc-300" />
+          {bookings.length} cancelled or released slots
+        </span>
+        <span className="text-[11px] font-medium text-zinc-400">
+          {expandCancelled ? "Hide ▴" : "Show ▾"}
+        </span>
+      </button>
+
+      {expandCancelled && (
+        <div className="space-y-1.5 opacity-50 hover:opacity-100 transition-opacity pl-1 pt-1">
+          {bookings.map((booking) => (
+            <CancelledRow
+              key={booking.id}
+              booking={booking}
+              service={serviceMap[booking.service_id]}
+              staffMember={staffMap[booking.staff_id]}
+              onInitiateRefundComplete={onInitiateRefundComplete}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── BookingCard (Apple HIG Milled Surface) ───────────────────────────────────
 
 function BookingCard({
@@ -849,7 +894,6 @@ function BookingCard({
   onInitiateRefundComplete: (booking: AdminBooking) => void;
 }) {
   const [updating, setUpdating] = useState(false);
-  const [cancelledExpanded, setCancelledExpanded] = useState(false);
 
   const inChair = bookingIsInChair(booking, nowMs);
   const minsRemaining = inChair
@@ -892,8 +936,6 @@ function BookingCard({
         booking={booking}
         service={service}
         staffMember={staffMember}
-        expanded={cancelledExpanded}
-        onToggle={() => setCancelledExpanded((prev) => !prev)}
         onInitiateRefundComplete={onInitiateRefundComplete}
       />
     );
@@ -1124,6 +1166,39 @@ function AppleNowScrubber({ currentTime }: { currentTime: string }) {
   );
 }
 
+// ─── Timeline Grouping Helper ─────────────────────────────────────────────────
+
+type TimelineItem =
+  | { type: "booking"; booking: AdminBooking }
+  | { type: "cancelled_group"; bookings: AdminBooking[] };
+
+function groupTimelineItems(list: AdminBooking[]): TimelineItem[] {
+  const items: TimelineItem[] = [];
+  let currentCancelled: AdminBooking[] = [];
+
+  function flushCancelled() {
+    if (currentCancelled.length === 0) return;
+    if (currentCancelled.length >= 2) {
+      items.push({ type: "cancelled_group", bookings: [...currentCancelled] });
+    } else {
+      items.push({ type: "booking", booking: currentCancelled[0] });
+    }
+    currentCancelled = [];
+  }
+
+  for (const b of list) {
+    const isCancelledOrNoShow = b.status === "cancelled" || b.status === "no_show";
+    if (isCancelledOrNoShow) {
+      currentCancelled.push(b);
+    } else {
+      flushCancelled();
+      items.push({ type: "booking", booking: b });
+    }
+  }
+  flushCancelled();
+  return items;
+}
+
 // ─── DashboardClient ──────────────────────────────────────────────────────────
 
 const FILTER_TABS = [
@@ -1352,8 +1427,8 @@ export default function DashboardClient({
   const nowMs = Date.now();
 
   // ── 2. Accurate NOW Scrubber Placement ────────────────────────────────────
-  // Inserts divider immediately above the ongoing active appointment or next upcoming appointment.
-  // Never allows past non-active appointments (whose start_time < nowMs) to render underneath.
+  // Transition index: first appointment that is active/in-chair OR starting in the future.
+  // All non-active appointments started before now are guaranteed above the NOW bar.
   const nowDividerIndex: number = isToday
     ? filtered.findIndex(
         (b) => bookingIsInChair(b, nowMs) || new Date(b.start_time).getTime() >= nowMs
@@ -1371,6 +1446,66 @@ export default function DashboardClient({
     );
     return found?.id ?? null;
   })();
+
+  // ── 3. Check for Active Appointments Remaining After NOW ──────────────────
+  const pastList = nowDividerIndex >= 0 ? filtered.slice(0, nowDividerIndex) : filtered;
+  const futureList = nowDividerIndex >= 0 ? filtered.slice(nowDividerIndex) : [];
+
+  const pastGroups = groupTimelineItems(pastList);
+  const futureGroups = groupTimelineItems(futureList);
+
+  const hasRemainingActive = isToday
+    ? futureList.some(
+        (b) =>
+          b.status !== "cancelled" &&
+          b.status !== "no_show" &&
+          b.status !== "completed" &&
+          new Date(b.end_time).getTime() > nowMs
+      )
+    : false;
+
+  function renderTimelineItem(item: TimelineItem) {
+    if (item.type === "cancelled_group") {
+      return (
+        <CancelledGroupRow
+          key={item.bookings[0].id + "-group"}
+          bookings={item.bookings}
+          serviceMap={serviceMap}
+          staffMap={staffMap}
+          onInitiateRefundComplete={(b) => setRefundingBooking(b)}
+        />
+      );
+    }
+
+    const booking = item.booking;
+    if (isWalkIn(booking) && booking.status === "confirmed") {
+      return (
+        <WalkInCard
+          key={booking.id}
+          booking={booking}
+          nowMs={nowMs}
+          servicePrice={serviceMap[booking.service_id]?.price_mur ?? 300}
+          onMarkCompleted={handleWalkInCompleted}
+          onRelease={handleWalkInRelease}
+        />
+      );
+    }
+
+    return (
+      <BookingCard
+        key={booking.id}
+        booking={booking}
+        service={serviceMap[booking.service_id]}
+        staffMember={staffMap[booking.staff_id]}
+        isUpNext={booking.id === upNextId}
+        nowMs={nowMs}
+        onStatusChange={handleStatusChange}
+        onConfirmDeposit={handleConfirmDeposit}
+        onInitiateCancel={(b) => setCancellingBooking(b)}
+        onInitiateRefundComplete={(b) => setRefundingBooking(b)}
+      />
+    );
+  }
 
   if (!hydrated) {
     return (
@@ -1589,44 +1724,22 @@ export default function DashboardClient({
         </div>
       ) : (
         <div className="space-y-3 pb-8">
-          {filtered.map((booking, idx) => {
-            const showNowScrubber = isToday && nowDividerIndex >= 0 && idx === nowDividerIndex;
+          {/* Past timeline items */}
+          {pastGroups.map((item) => renderTimelineItem(item))}
 
-            if (isWalkIn(booking) && booking.status === "confirmed") {
-              return (
-                <div key={booking.id}>
-                  {showNowScrubber && <AppleNowScrubber currentTime={clockTime} />}
-                  <WalkInCard
-                    booking={booking}
-                    nowMs={nowMs}
-                    servicePrice={serviceMap[booking.service_id]?.price_mur ?? 300}
-                    onMarkCompleted={handleWalkInCompleted}
-                    onRelease={handleWalkInRelease}
-                  />
-                </div>
-              );
-            }
-
-            return (
-              <div key={booking.id}>
-                {showNowScrubber && <AppleNowScrubber currentTime={clockTime} />}
-                <BookingCard
-                  booking={booking}
-                  service={serviceMap[booking.service_id]}
-                  staffMember={staffMap[booking.staff_id]}
-                  isUpNext={booking.id === upNextId}
-                  nowMs={nowMs}
-                  onStatusChange={handleStatusChange}
-                  onConfirmDeposit={handleConfirmDeposit}
-                  onInitiateCancel={(b) => setCancellingBooking(b)}
-                  onInitiateRefundComplete={(b) => setRefundingBooking(b)}
-                />
-              </div>
-            );
-          })}
-          {/* NOW scrubber at bottom if all appointments are in the past */}
-          {isToday && nowDividerIndex === -1 && filtered.length > 0 && (
+          {/* NOW scrubber placed accurately at boundary */}
+          {isToday && (
             <AppleNowScrubber currentTime={clockTime} />
+          )}
+
+          {/* Future timeline items */}
+          {futureGroups.map((item) => renderTimelineItem(item))}
+
+          {/* Empty schedule fallback if all remaining slots after NOW are completed or cancelled */}
+          {isToday && !hasRemainingActive && (
+            <div className="py-8 text-center text-xs text-zinc-400 font-medium">
+              Chair is open for the rest of the day
+            </div>
           )}
         </div>
       )}
