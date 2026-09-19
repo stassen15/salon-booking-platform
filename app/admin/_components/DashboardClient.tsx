@@ -1087,6 +1087,7 @@ export default function DashboardClient({
   const [loading, setLoading]             = useState(false);
   const [fetchError, setFetchError]       = useState<string | null>(null);
   const [walkInLoading, setWalkInLoading] = useState(false);
+  const [walkInNotice, setWalkInNotice]   = useState<string | null>(null);
 
   // Live clock — tick every 60 s
   const [clockTime, setClockTime] = useState<string>(nowTimeMU());
@@ -1227,6 +1228,8 @@ export default function DashboardClient({
       setBookings((bs) =>
         [...bs, newBooking].sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
       );
+      setWalkInNotice(`Blocked ${formatTimeMU(newBooking.start_time)} – ${formatTimeMU(newBooking.end_time)} for Walk-in`);
+      setTimeout(() => setWalkInNotice(null), 6000);
     } finally {
       setWalkInLoading(false);
     }
@@ -1380,6 +1383,12 @@ export default function DashboardClient({
         <p className="text-xs text-zinc-500">
           Instantly reserves the next free 30-minute window for someone at the counter.
         </p>
+        {walkInNotice && (
+          <div className="flex items-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-800 sm:ml-auto">
+            <span className="text-emerald-600">✓</span>
+            <span>{walkInNotice}</span>
+          </div>
+        )}
       </div>
 
       {/* Date switcher */}
