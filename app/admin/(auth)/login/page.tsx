@@ -10,21 +10,35 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resetMode, setResetMode] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
-    if (authError) {
-      setError(authError.message);
+    setMessage(null);
+    try {
+      const supabase = createClient();
+      if (resetMode) {
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/admin/reset-password`,
+        });
+        if (resetError) throw resetError;
+        setMessage("If an account exists for this email, you’ll receive a reset link shortly.");
+        return;
+      }
+
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      if (authError) throw authError;
+      router.push("/admin");
+      router.refresh();
+    } catch (authError) {
+      setError(authError instanceof Error ? authError.message : "Unable to continue. Please try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-    router.push("/admin");
-    router.refresh();
   }
 
   return (
@@ -44,8 +58,8 @@ export default function AdminLoginPage() {
           </div>
         </div>
 
-        <h1 className="text-center text-[30px] font-semibold tracking-[-0.04em] text-zinc-950">Salon Dashboard</h1>
-        <p className="mb-8 mt-2 text-center text-sm text-zinc-500">Sign in to manage your bookings</p>
+        <h1 className="text-center text-[30px] font-semibold tracking-[-0.04em] text-zinc-950">{resetMode ? "Reset your password" : "Salon Dashboard"}</h1>
+        <p className="mb-8 mt-2 text-center text-sm text-zinc-500">{resetMode ? "We’ll send a secure reset link to your email." : "Sign in to manage your bookings"}</p>
 
         <form onSubmit={handleSubmit} className="premium-surface space-y-4 rounded-[28px] p-5 sm:p-6">
           <div>
@@ -61,7 +75,7 @@ export default function AdminLoginPage() {
             />
           </div>
 
-          <div>
+          {!resetMode && <div>
             <label className="mb-1.5 block text-sm font-medium text-zinc-700">Password</label>
             <input
               type="password"
@@ -72,11 +86,17 @@ export default function AdminLoginPage() {
               autoComplete="current-password"
               className="w-full rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3.5 text-zinc-950 outline-none transition focus:border-zinc-950 focus:ring-4 focus:ring-zinc-950/10"
             />
-          </div>
+          </div>}
 
           {error && (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
               <p className="text-sm text-rose-700">{error}</p>
+            </div>
+          )}
+
+          {message && (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <p className="text-sm text-emerald-700">{message}</p>
             </div>
           )}
 
@@ -85,8 +105,10 @@ export default function AdminLoginPage() {
             disabled={loading}
             className="min-h-12 w-full rounded-2xl bg-zinc-950 py-3.5 text-base font-semibold text-white shadow-lg shadow-zinc-950/15 transition hover:bg-zinc-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? "Signing in…" : "Sign In"}
+            {loading ? "Please wait…" : resetMode ? "Send reset link" : "Sign In"}
           </button>
+          {!resetMode && <button type="button" onClick={() => { setResetMode(true); setError(null); setMessage(null); }} className="w-full text-sm font-semibold text-zinc-600 underline underline-offset-4">Forgot password?</button>}
+          {resetMode && <button type="button" onClick={() => { setResetMode(false); setError(null); setMessage(null); }} className="w-full text-sm font-semibold text-zinc-600 underline underline-offset-4">Back to sign in</button>}
         </form>
         <p className="mt-6 text-center text-sm text-zinc-500">
           New salon? <Link href="/admin/signup" className="font-semibold text-zinc-950 underline underline-offset-4">Create an owner account</Link>
