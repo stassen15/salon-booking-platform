@@ -97,7 +97,7 @@ export async function POST(request: Request) {
       salon_id: salonId,
       staff_id: staffId,
       service_id: service.id,
-      customer_name: "Walk-in",
+      customer_name: "Walk-in / Counter Hold",
       customer_phone: "00000000",
       start_time: candidateStart.toISOString(),
       end_time: candidateEnd.toISOString(),

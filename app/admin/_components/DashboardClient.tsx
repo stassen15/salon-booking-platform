@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { BookingStatus, PaymentStatus, RefundStatus } from "@/types/database.types";
 import { formatCancellationMessage } from "@/lib/services/whatsapp";
 
-// ─── Shared types ─────────────────────────────────────────────────────────────
+// ─── Shared Types ─────────────────────────────────────────────────────────────
 
 export type AdminBooking = {
   id: string;
@@ -50,27 +50,47 @@ const STATUS_LABEL: Record<BookingStatus, string> = {
   no_show:   "No-Show",
 };
 
-const STATUS_BADGE: Record<BookingStatus, string> = {
-  pending:   "bg-amber-100   text-amber-700   border border-amber-200",
-  confirmed: "bg-emerald-100 text-emerald-700 border border-emerald-200",
-  completed: "bg-blue-100    text-blue-700    border border-blue-200",
-  cancelled: "bg-rose-100    text-rose-700    border border-rose-200",
-  no_show:   "bg-rose-100    text-rose-700    border border-rose-200",
-};
-
 const PAYMENT_LABEL: Record<PaymentStatus, string> = {
   unpaid:            "Unpaid",
   deposit_submitted: "Deposit Sent",
   paid_in_full:      "Paid",
 };
 
-const PAYMENT_BADGE: Record<PaymentStatus, string> = {
-  unpaid:            "bg-zinc-100    text-zinc-600",
-  deposit_submitted: "bg-amber-100   text-amber-700",
-  paid_in_full:      "bg-emerald-100 text-emerald-700",
-};
+// ─── Apple HIG Status Dot Indicators ──────────────────────────────────────────
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+function AppleStatusBadge({ status }: { status: BookingStatus }) {
+  const dotColor =
+    status === "confirmed" || status === "completed"
+      ? "bg-[#34C759]"
+      : status === "pending"
+        ? "bg-[#FF9500]"
+        : "bg-[#FF3B30]";
+
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F5F5F7] text-xs font-medium text-[#1D1D1F]">
+      <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+      {STATUS_LABEL[status] ?? status}
+    </span>
+  );
+}
+
+function ApplePaymentBadge({ paymentStatus }: { paymentStatus: PaymentStatus }) {
+  const dotColor =
+    paymentStatus === "paid_in_full"
+      ? "bg-[#34C759]"
+      : paymentStatus === "deposit_submitted"
+        ? "bg-[#FF9500]"
+        : "bg-[#86868B]";
+
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F5F5F7] text-xs font-medium text-[#1D1D1F]">
+      <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+      {PAYMENT_LABEL[paymentStatus] ?? paymentStatus}
+    </span>
+  );
+}
+
+// ─── Date / Time Helpers ──────────────────────────────────────────────────────
 
 function formatTimeMU(iso: string): string {
   return new Intl.DateTimeFormat("en-MU", {
@@ -109,7 +129,10 @@ function waDigits(phone: string): string {
 }
 
 function isWalkIn(booking: AdminBooking): boolean {
-  return booking.customer_name === "Walk-in";
+  return (
+    booking.customer_name === "Walk-in" ||
+    booking.customer_name === "Walk-in / Counter Hold"
+  );
 }
 
 function bookingIsInChair(booking: AdminBooking, nowMs: number): boolean {
@@ -122,7 +145,7 @@ function bookingIsInChair(booking: AdminBooking, nowMs: number): boolean {
   );
 }
 
-// ─── Cancellation Modal ───────────────────────────────────────────────────────
+// ─── Cancellation Modal (Apple HIG Sheet) ─────────────────────────────────────
 
 const QUICK_REASONS = [
   "Barber Unwell / Emergency",
@@ -229,28 +252,26 @@ function CancellationModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-      <div className="w-full max-w-lg rounded-[28px] bg-white border border-zinc-200 shadow-2xl overflow-hidden my-6">
-        <div className="bg-rose-50/80 border-b border-rose-100 px-6 py-4 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md overflow-y-auto">
+      <div className="w-full max-w-lg rounded-2xl bg-white border border-black/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.18)] overflow-hidden my-6">
+        <div className="bg-[#F5F5F7] border-b border-black/[0.06] px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <div className="h-9 w-9 rounded-xl bg-[#FF3B30]/10 flex items-center justify-center text-[#FF3B30] shrink-0">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
             <div>
-              <h3 className="font-bold text-zinc-900 text-lg">Cancel Appointment</h3>
-              <p className="text-xs text-zinc-500">
+              <h3 className="font-semibold text-[#1D1D1F] text-base">Cancel Appointment</h3>
+              <p className="text-xs text-[#86868B]">
                 {booking.customer_name} &bull; {formatTimeMU(booking.start_time)}
-                {" "}({service?.name ?? "Service"}
-                {staffMember ? ` &bull; ${staffMember.name}` : ""})
+                {" "}({service?.name ?? "Service"}{staffMember ? ` &bull; ${staffMember.name}` : ""})
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-rose-100/50 transition"
+            className="p-1.5 rounded-lg text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.05] transition"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -260,7 +281,7 @@ function CancellationModal({
 
         <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-2">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#86868B] mb-2">
               Reason for Cancellation
             </label>
             <div className="flex flex-wrap gap-1.5 mb-2.5">
@@ -272,8 +293,8 @@ function CancellationModal({
                   className={
                     "text-xs px-3 py-1.5 rounded-full font-medium transition " +
                     (selectedChip === r
-                      ? "bg-zinc-900 text-white shadow-sm"
-                      : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200")
+                      ? "bg-[#1D1D1F] text-white shadow-sm"
+                      : "bg-[#F5F5F7] text-[#1D1D1F] hover:bg-[#E8E8ED]")
                   }
                 >
                   {r}
@@ -285,25 +306,25 @@ function CancellationModal({
               value={customReason}
               onChange={(e) => setCustomReason(e.target.value)}
               placeholder="Explain why you need to cancel..."
-              className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-zinc-50 border border-zinc-200 text-zinc-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition"
+              className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[#F5F5F7] border border-black/[0.06] text-[#1D1D1F] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1D1D1F] transition"
             />
           </div>
 
           {depositPaid ? (
-            <div className="rounded-2xl bg-amber-50/70 border border-amber-200/90 p-4 space-y-3">
+            <div className="rounded-2xl bg-[#F5F5F7] border border-black/[0.06] p-4 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-amber-800">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#FF9500]">
                     MCB Juice Deposit Refund
                   </span>
-                  <p className="text-sm font-bold text-zinc-900 mt-0.5">
+                  <p className="text-sm font-semibold text-[#1D1D1F] mt-0.5">
                     Rs {depositAmount} to be refunded
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={copyPhone}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-amber-200 text-xs font-semibold text-zinc-800 shadow-sm hover:bg-amber-100 transition active:scale-95"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-black/[0.08] text-xs font-medium text-[#1D1D1F] shadow-sm hover:bg-[#F5F5F7] transition active:scale-95"
                 >
                   {copiedPhone ? "Copied!" : "Copy Juice No."}
                 </button>
@@ -312,30 +333,30 @@ function CancellationModal({
                 {(["refunded_now", "pending", "not_required"] as const).map((choice) => (
                   <label
                     key={choice}
-                    className="flex items-center gap-2.5 p-2 rounded-xl bg-white/80 border border-amber-100 cursor-pointer hover:bg-white transition"
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-black/[0.06] cursor-pointer hover:bg-black/[0.02] transition"
                   >
                     <input
                       type="radio"
                       name="refundChoice"
                       checked={refundChoice === choice}
                       onChange={() => setRefundChoice(choice)}
-                      className="h-4 w-4"
+                      className="h-4 w-4 text-[#1D1D1F] focus:ring-[#1D1D1F]"
                     />
                     <div className="flex-1 min-w-0">
                       {choice === "refunded_now" && (
                         <>
-                          <span className="text-xs font-bold text-zinc-900 block">I refunded via Juice now</span>
-                          <span className="text-[11px] text-zinc-500">Already transferred Rs {depositAmount} back</span>
+                          <span className="text-xs font-semibold text-[#1D1D1F] block">I refunded via Juice now</span>
+                          <span className="text-[11px] text-[#86868B]">Already transferred Rs {depositAmount} back</span>
                         </>
                       )}
                       {choice === "pending" && (
                         <>
-                          <span className="text-xs font-bold text-zinc-900 block">Refund is Pending</span>
-                          <span className="text-[11px] text-zinc-500">Mark as pending refund in dashboard</span>
+                          <span className="text-xs font-semibold text-[#1D1D1F] block">Refund is Pending</span>
+                          <span className="text-[11px] text-[#86868B]">Mark as pending refund in dashboard</span>
                         </>
                       )}
                       {choice === "not_required" && (
-                        <span className="text-xs font-medium text-zinc-700 block">No refund required / Deposit waived</span>
+                        <span className="text-xs font-medium text-[#1D1D1F] block">No refund required / Deposit waived</span>
                       )}
                     </div>
                   </label>
@@ -347,34 +368,34 @@ function CancellationModal({
                       value={refundRef}
                       onChange={(e) => setRefundRef(e.target.value)}
                       placeholder="Juice Ref (e.g. REF-88491)"
-                      className="w-full px-3 py-2 rounded-xl text-xs bg-white border border-amber-200 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 transition"
+                      className="w-full px-3.5 py-2 rounded-xl text-xs bg-white border border-black/[0.12] text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#1D1D1F] transition"
                     />
                   </div>
                 )}
               </div>
             </div>
           ) : (
-            <div className="rounded-xl bg-zinc-50 border border-zinc-200/80 p-3 text-xs text-zinc-500">
+            <div className="rounded-xl bg-[#F5F5F7] border border-black/[0.04] p-3 text-xs text-[#86868B]">
               No deposit was recorded for this appointment.
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-2">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#86868B] mb-2">
               WhatsApp Message Preview
             </label>
-            <div className="rounded-2xl bg-zinc-900 text-zinc-100 p-4 font-sans text-xs whitespace-pre-line leading-relaxed shadow-inner">
+            <div className="rounded-xl bg-[#1D1D1F] text-white p-4 font-sans text-xs whitespace-pre-line leading-relaxed shadow-inner">
               {messageText}
             </div>
           </div>
         </div>
 
-        <div className="bg-zinc-50 border-t border-zinc-100 px-6 py-4 flex flex-col sm:flex-row gap-2.5 justify-end">
+        <div className="bg-[#F5F5F7] border-t border-black/[0.06] px-6 py-4 flex flex-col sm:flex-row gap-2.5 justify-end">
           <button
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 transition"
+            className="px-4 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-[#1D1D1F] hover:bg-[#E8E8ED] transition"
           >
             Keep Appointment
           </button>
@@ -382,7 +403,7 @@ function CancellationModal({
             type="button"
             onClick={() => handleSubmit(false)}
             disabled={submitting}
-            className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-900 text-white text-xs font-semibold shadow-sm transition active:scale-95 disabled:opacity-50"
+            className="px-4 py-2.5 rounded-xl bg-[#1D1D1F] hover:bg-[#2C2C2E] text-white text-xs font-medium shadow-sm transition active:scale-[0.98] disabled:opacity-50"
           >
             Cancel Only
           </button>
@@ -390,7 +411,7 @@ function CancellationModal({
             type="button"
             onClick={() => handleSubmit(true)}
             disabled={submitting}
-            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
+            className="px-4 py-2.5 rounded-xl bg-[#34C759] hover:bg-[#2DB04D] text-white text-xs font-semibold shadow-sm transition flex items-center justify-center gap-1.5 active:scale-[0.98] disabled:opacity-50"
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
@@ -441,40 +462,41 @@ function RefundCompleteModal({ booking, service, onClose, onConfirm }: RefundCom
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-[26px] bg-white border border-zinc-200 shadow-2xl overflow-hidden">
-        <div className="bg-amber-50 border-b border-amber-100 px-5 py-4 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
+      <div className="w-full max-w-md rounded-2xl bg-white border border-black/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.18)] overflow-hidden">
+        <div className="bg-[#F5F5F7] border-b border-black/[0.06] px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+            <div className="h-8 w-8 rounded-xl bg-[#FF9500]/10 flex items-center justify-center text-[#FF9500] shrink-0">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
             <div>
-              <h3 className="font-bold text-zinc-900 text-base">Record Juice Refund</h3>
-              <p className="text-xs text-zinc-500">{booking.customer_name}</p>
+              <h3 className="font-semibold text-[#1D1D1F] text-base">Record Juice Refund</h3>
+              <p className="text-xs text-[#86868B]">{booking.customer_name}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded text-zinc-400 hover:text-zinc-600">
+          <button onClick={onClose} className="p-1 rounded text-[#86868B] hover:text-[#1D1D1F]">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3.5 flex items-center justify-between">
+          <div className="rounded-xl bg-[#F5F5F7] border border-black/[0.04] p-3.5 flex items-center justify-between">
             <div>
-              <p className="text-xs text-zinc-500 font-medium">Refund Amount</p>
-              <p className="text-lg font-black text-zinc-900">Rs {depositAmount}</p>
+              <p className="text-[11px] uppercase tracking-wider font-semibold text-[#86868B]">Refund Amount</p>
+              <p className="text-xl font-semibold tracking-tight text-[#1D1D1F]">
+                <span className="text-sm font-normal text-[#86868B]">Rs </span>{depositAmount}
+              </p>
             </div>
             <button type="button" onClick={copyPhone}
-              className="px-2.5 py-1 rounded-lg bg-white border border-zinc-200 text-xs font-semibold text-zinc-700 shadow-sm hover:bg-zinc-100 transition">
+              className="px-2.5 py-1 rounded-lg bg-white border border-black/[0.08] text-xs font-medium text-[#1D1D1F] shadow-sm hover:bg-[#F5F5F7] transition">
               {copied ? "Copied!" : "Copy " + booking.customer_phone}
             </button>
           </div>
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-600 mb-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#86868B] mb-1.5">
               MCB Juice Transaction Reference
             </label>
             <input
@@ -483,16 +505,16 @@ function RefundCompleteModal({ booking, service, onClose, onConfirm }: RefundCom
               value={ref}
               onChange={(e) => setRef(e.target.value)}
               placeholder="e.g. JUICE-994821"
-              className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-zinc-50 border border-zinc-300 text-zinc-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900 transition"
+              className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1D1D1F] transition"
             />
           </div>
           <div className="flex gap-2 justify-end pt-2">
             <button type="button" onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-zinc-200 text-xs font-semibold text-zinc-700 hover:bg-zinc-100">
+              className="px-4 py-2 rounded-xl border border-black/[0.08] text-xs font-medium text-[#1D1D1F] hover:bg-[#F5F5F7]">
               Cancel
             </button>
             <button type="submit" disabled={submitting}
-              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition disabled:opacity-50">
+              className="px-4 py-2 rounded-xl bg-[#34C759] hover:bg-[#2DB04D] text-white text-xs font-semibold shadow-sm transition disabled:opacity-50">
               Confirm Refund Sent
             </button>
           </div>
@@ -502,16 +524,18 @@ function RefundCompleteModal({ booking, service, onClose, onConfirm }: RefundCom
   );
 }
 
-// ─── Walk-in Card ─────────────────────────────────────────────────────────────
+// ─── Walk-in Card (Distinctive Muted Stripes) ─────────────────────────────────
 
 function WalkInCard({
   booking,
   nowMs,
+  servicePrice,
   onMarkCompleted,
   onRelease,
 }: {
   booking: AdminBooking;
   nowMs: number;
+  servicePrice: number;
   onMarkCompleted: (id: string) => Promise<void>;
   onRelease: (id: string) => Promise<void>;
 }) {
@@ -538,96 +562,63 @@ function WalkInCard({
   return (
     <div
       className={
-        "relative rounded-[24px] overflow-hidden transition-opacity " +
+        "rounded-2xl border transition-all overflow-hidden " +
         (busy ? "opacity-60 pointer-events-none " : "") +
         (inChair
-          ? "border-2 border-emerald-500/80 bg-white shadow-lg shadow-emerald-500/10"
-          : "border-2 border-dashed border-zinc-300 bg-zinc-50")
+          ? "border-[#34C759] shadow-[0_4px_20px_rgba(52,199,89,0.15)] bg-white"
+          : "border-black/[0.08] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] bg-white")
       }
-      style={
-        inChair
+      style={{
+        backgroundImage: inChair
           ? undefined
-          : {
-              backgroundImage:
-                "repeating-linear-gradient(-45deg, transparent, transparent 8px, rgba(0,0,0,0.025) 8px, rgba(0,0,0,0.025) 16px)",
-            }
-      }
+          : "repeating-linear-gradient(-45deg, #FFFFFF, #FFFFFF 12px, #F5F5F7 12px, #F5F5F7 24px)",
+      }}
     >
-      {/* Status banner */}
-      <div className={
-        "flex items-center gap-2 px-4 py-2 " +
-        (inChair ? "bg-emerald-600" : "bg-zinc-100/70")
-      }>
-        <span className={"inline-block h-1.5 w-1.5 rounded-full " + (inChair ? "bg-white animate-pulse" : "bg-zinc-400")} />
-        <span className={
-          "text-[11px] font-bold uppercase tracking-widest " +
-          (inChair ? "text-white" : "text-zinc-500")
-        }>
-          {inChair ? `In Chair · Walk-in · ${minsRemaining} min remaining` : "Walk-in Blocked"}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between border-b border-zinc-200/60 bg-white/60 px-4 py-3.5">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="h-8 w-8 rounded-xl bg-zinc-800 flex items-center justify-center shrink-0">
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </div>
-          <div>
-            <p className="font-black text-zinc-900 text-base leading-none">Walk-in</p>
-            <p className="text-xs text-zinc-500 mt-0.5 font-mono">
-              {formatTimeMU(booking.start_time)} – {formatTimeMU(booking.end_time)}
-            </p>
-          </div>
+      {/* Active In-Chair Banner */}
+      {inChair && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-[#34C759] text-white text-[11px] font-semibold tracking-wider uppercase">
+          <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+          <span>In Chair &bull; Walk-in &bull; {minsRemaining} min remaining</span>
         </div>
-        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-zinc-800 text-white shrink-0">
-          Blocked
-        </span>
-      </div>
+      )}
 
-      <div className="px-4 py-3 space-y-3">
-        {inChair ? (
+      <div className="p-5 space-y-3.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl font-semibold tracking-tight tabular-nums text-[#1D1D1F]">
+              {formatTimeMU(booking.start_time)} &ndash; {formatTimeMU(booking.end_time)}
+            </span>
+            <span className="text-[#86868B]">&bull;</span>
+            <span className="text-xs font-semibold text-[#1D1D1F]">
+              {booking.customer_name || "Walk-in / Counter Hold"}
+            </span>
+          </div>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F5F5F7] text-xs font-medium text-[#1D1D1F]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#FF9500]" />
+            Counter Hold
+          </span>
+        </div>
+
+        <p className="text-xs text-[#86868B]">
+          Slot reserved for counter customer. Free this window or complete to record revenue.
+        </p>
+
+        <div className="flex items-center gap-2 pt-1">
           <button
             onClick={handleCompleted}
             disabled={busy}
-            className="w-full min-h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm shadow-md shadow-emerald-600/25 transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white font-medium text-xs rounded-xl px-4 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5 text-[#34C759]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
             </svg>
-            Complete Walk-in
+            Mark Completed (+Rs {servicePrice || 300})
           </button>
-        ) : (
-          <p className="text-xs text-zinc-500">
-            Slot reserved for a counter walk-in.
-          </p>
-        )}
-        <div className="flex gap-2">
-          {!inChair && (
-            <button
-              onClick={handleCompleted}
-              disabled={busy}
-              className="flex-1 min-h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-              </svg>
-              Mark Completed
-            </button>
-          )}
           <button
             onClick={handleRelease}
             disabled={busy}
-            className={
-              "min-h-10 rounded-xl bg-white border border-zinc-300 hover:bg-zinc-100 text-zinc-700 text-xs font-semibold transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 " +
-              (inChair ? "w-full" : "flex-1")
-            }
+            className="bg-[#F5F5F7] hover:bg-[#E8E8ED] active:scale-[0.98] text-[#1D1D1F] font-medium text-xs rounded-xl px-4 py-2.5 transition-all disabled:opacity-50"
           >
-            <svg className="w-3.5 h-3.5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
             Release Block
           </button>
         </div>
@@ -636,7 +627,7 @@ function WalkInCard({
   );
 }
 
-// ─── Compact Completed Row ────────────────────────────────────────────────────
+// ─── Compact Completed Row (Apple Subdued) ────────────────────────────────────
 
 function CompletedRow({
   booking,
@@ -646,12 +637,12 @@ function CompletedRow({
   service: ServiceInfo | undefined;
 }) {
   return (
-    <div className="flex items-center justify-between py-2 px-3 bg-zinc-50/70 rounded-xl text-xs text-zinc-400">
-      <span className="line-through truncate mr-2">
+    <div className="flex items-center justify-between py-2.5 px-4 bg-[#F5F5F7]/80 rounded-xl border border-black/[0.03] text-xs">
+      <span className="line-through text-[#86868B] truncate font-normal mr-2">
         {formatTimeMU(booking.start_time)} – {formatTimeMU(booking.end_time)} &bull; {service?.name ?? "Service"}
       </span>
-      <span className="shrink-0 text-zinc-500 font-medium">
-        {booking.customer_name} &bull; Rs {service?.price_mur ?? 0} ✓
+      <span className="shrink-0 text-[#1D1D1F] font-medium">
+        {booking.customer_name} &bull; <span className="text-[#86868B]">Rs </span>{service?.price_mur ?? 0} ✓
       </span>
     </div>
   );
@@ -680,33 +671,34 @@ function CancelledRow({
   );
 
   return (
-    <div className="rounded-[20px] border border-rose-200/80 bg-rose-50/40 overflow-hidden transition-all duration-200">
+    <div className="rounded-2xl border border-black/[0.06] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02)] overflow-hidden transition-all">
       {/* Clickable compact row header */}
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 text-left hover:bg-rose-50/90 transition-colors"
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[#F5F5F7]/60 transition-colors"
       >
         <div className="flex items-center gap-2 min-w-0">
-          <span className="inline-flex items-center justify-center text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200 shrink-0">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F5F5F7] text-[10px] font-medium text-[#1D1D1F] shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B30]" />
             Cancelled
           </span>
-          <span className="text-xs text-zinc-500 font-medium line-through truncate">
+          <span className="text-xs text-[#86868B] font-normal line-through truncate">
             {formatTimeMU(booking.start_time)} – {formatTimeMU(booking.end_time)} &bull; {service?.name ?? "Service"}
           </span>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs text-zinc-700 font-semibold truncate max-w-[110px] sm:max-w-[160px]">
+          <span className="text-xs text-[#1D1D1F] font-medium truncate max-w-[110px] sm:max-w-[160px]">
             {booking.customer_name}
           </span>
           {booking.refund_status === "pending" && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 shrink-0 animate-pulse">
-              <span>⚠️</span> Refund Due
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#FF9500]/10 text-[#FF9500] shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#FF9500] animate-pulse" /> Refund Due
             </span>
           )}
           <svg
-            className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+            className={`w-4 h-4 text-[#86868B] transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -718,29 +710,27 @@ function CancelledRow({
 
       {/* Expanded details */}
       {expanded && (
-        <div className="px-4 pb-4 pt-1 space-y-3 border-t border-rose-100 bg-white/70">
-          {/* Barber & Price row */}
-          <div className="flex items-center justify-between text-xs text-zinc-500 pt-2">
+        <div className="px-5 pb-5 pt-2 space-y-3 border-t border-black/[0.04] bg-[#F5F5F7]/40">
+          {/* Barber & Price */}
+          <div className="flex items-center justify-between text-xs text-[#86868B] pt-1">
             {staffMember ? (
-              <span className="flex items-center gap-1">
-                <span>Barber:</span> <strong className="text-zinc-800">{staffMember.name}</strong>
-              </span>
+              <span>Barber: <strong className="text-[#1D1D1F] font-medium">{staffMember.name}</strong></span>
             ) : <span />}
             {service && (
-              <span className="font-semibold text-zinc-700">Rs {service.price_mur}</span>
+              <span className="text-[#1D1D1F] font-medium">Rs {service.price_mur}</span>
             )}
           </div>
 
-          {/* Customer & Quick Contact */}
+          {/* Customer & Call / WA */}
           <div className="flex items-center justify-between gap-2">
             <div>
-              <p className="font-bold text-zinc-900 text-sm">{booking.customer_name}</p>
-              <p className="text-xs text-zinc-500">{booking.customer_phone}</p>
+              <p className="font-semibold text-[#1D1D1F] text-sm">{booking.customer_name}</p>
+              <p className="text-xs text-[#86868B]">{booking.customer_phone}</p>
             </div>
             <div className="flex items-center gap-1.5">
               <a
                 href={"tel:" + booking.customer_phone}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-medium transition"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#1D1D1F] text-xs font-medium transition"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
@@ -751,7 +741,7 @@ function CancelledRow({
                 href={"https://wa.me/" + waNum + "?text=" + waMsg}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-medium transition"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#34C759]/10 hover:bg-[#34C759]/20 text-[#248A3D] text-xs font-medium transition"
               >
                 <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
@@ -762,45 +752,45 @@ function CancelledRow({
             </div>
           </div>
 
-          {/* Reason & Meta */}
-          <div className="rounded-xl bg-rose-50/80 border border-rose-200/70 p-3 space-y-2 text-xs">
-            <div className="flex items-center justify-between text-rose-800 font-bold">
+          {/* Cancellation Info */}
+          <div className="rounded-xl bg-white border border-black/[0.06] p-3.5 space-y-2 text-xs">
+            <div className="flex items-center justify-between text-[#FF3B30] font-medium">
               <span>Cancelled {booking.cancelled_by ? "by Salon" : "by Customer"}</span>
               {booking.cancelled_at && (
-                <span className="text-[11px] font-normal text-rose-500">
+                <span className="text-[11px] text-[#86868B] font-normal">
                   {formatTimeMU(booking.cancelled_at)}
                 </span>
               )}
             </div>
             {booking.cancellation_reason && (
-              <p className="text-rose-700 italic bg-white/70 rounded-lg p-2 border border-rose-100">
+              <p className="text-[#86868B] italic bg-[#F5F5F7] rounded-lg p-2.5">
                 &ldquo;{booking.cancellation_reason}&rdquo;
               </p>
             )}
 
-            {/* Refund Pending */}
+            {/* Refund Pending Action */}
             {booking.refund_status === "pending" && (
-              <div className="pt-2 border-t border-rose-200/70 flex items-center justify-between gap-2">
+              <div className="pt-2 border-t border-black/[0.06] flex items-center justify-between gap-2">
                 <div>
-                  <p className="font-bold text-amber-800">
-                    ⚠️ Deposit Refund Due: Rs {booking.deposit_required_mur || service?.deposit_required_mur || 0}
+                  <p className="font-semibold text-[#FF9500]">
+                    Deposit Refund Due: Rs {booking.deposit_required_mur || service?.deposit_required_mur || 0}
                   </p>
-                  <p className="text-[11px] text-amber-700">Awaiting MCB Juice transfer</p>
+                  <p className="text-[11px] text-[#86868B]">Client awaiting MCB Juice transfer</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => onInitiateRefundComplete(booking)}
-                  className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm transition active:scale-95 shrink-0"
+                  className="px-3 py-1.5 rounded-xl bg-[#1D1D1F] hover:bg-[#2C2C2E] text-white text-xs font-medium shadow-sm transition active:scale-[0.98] shrink-0"
                 >
                   Record Refund
                 </button>
               </div>
             )}
 
-            {/* Refunded */}
+            {/* Refund Completed */}
             {booking.refund_status === "refunded" && (
-              <div className="pt-2 border-t border-rose-200/70 flex items-center gap-1.5 text-emerald-700 font-semibold">
-                <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <div className="pt-2 border-t border-black/[0.06] flex items-center gap-1.5 text-xs text-[#248A3D] font-medium">
+                <svg className="w-4 h-4 text-[#34C759] shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
                 <span>
@@ -815,7 +805,7 @@ function CancelledRow({
   );
 }
 
-// ─── BookingCard ──────────────────────────────────────────────────────────────
+// ─── BookingCard (Apple HIG Milled Surface) ───────────────────────────────────
 
 function BookingCard({
   booking,
@@ -838,7 +828,6 @@ function BookingCard({
   onInitiateCancel: (booking: AdminBooking) => void;
   onInitiateRefundComplete: (booking: AdminBooking) => void;
 }) {
-  // ── All hooks first (no conditional hooks) ─────────────────────────────────
   const [updating, setUpdating] = useState(false);
   const [cancelledExpanded, setCancelledExpanded] = useState(false);
 
@@ -855,7 +844,6 @@ function BookingCard({
   const hasDeposit = service && service.deposit_required_mur > 0;
   const depositPending = booking.payment_status === "deposit_submitted";
   const STATUS_ACTIONS: BookingStatus[] = ["confirmed", "completed", "no_show", "cancelled"];
-  const isTerminal = booking.status === "cancelled" || booking.status === "completed";
 
   async function handleStatus(newStatus: BookingStatus) {
     if (updating || booking.status === newStatus) return;
@@ -872,12 +860,12 @@ function BookingCard({
     setUpdating(false);
   }
 
-  // ── Tier 1: Completed → compact row ───────────────────────────────────────
+  // Tier 1: Completed → compact row
   if (booking.status === "completed") {
     return <CompletedRow booking={booking} service={service} />;
   }
 
-  // ── Tier 2: Cancelled → collapsible compact row ───────────────────────────
+  // Tier 2: Cancelled → collapsible compact row
   if (booking.status === "cancelled") {
     return (
       <CancelledRow
@@ -891,101 +879,77 @@ function BookingCard({
     );
   }
 
-  // ── Tier 3 / Hero: IN CHAIR ────────────────────────────────────────────────
+  // Tier 3: In Chair (Active Hero Card)
   if (inChair) {
     return (
       <div
         className={
-          "rounded-[24px] overflow-hidden border-2 border-emerald-500/80 bg-white shadow-lg shadow-emerald-500/10 transition-opacity " +
+          "rounded-2xl border-2 border-[#34C759]/80 bg-white shadow-[0_4px_24px_rgba(52,199,89,0.14)] overflow-hidden transition-all " +
           (updating ? "opacity-60 pointer-events-none" : "")
         }
       >
-        {/* IN CHAIR banner */}
-        <div className="flex items-center gap-2 bg-emerald-600 px-4 py-2">
-          <span className="inline-block h-2 w-2 rounded-full bg-white animate-pulse" />
-          <span className="text-[11px] font-bold uppercase tracking-widest text-white">
-            In Chair &bull; {minsRemaining} min remaining
-          </span>
+        <div className="flex items-center gap-2 bg-[#34C759] text-white px-5 py-2 text-[11px] font-semibold tracking-wider uppercase">
+          <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+          <span>In Chair &bull; {minsRemaining} min remaining</span>
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-zinc-100/80 bg-white/60 px-4 py-4">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-black text-zinc-900 text-xl tracking-tight shrink-0">
-              {formatTimeMU(booking.start_time)} &ndash; {formatTimeMU(booking.end_time)}
-            </span>
-            <span className="text-zinc-300 shrink-0">&middot;</span>
-            <span className="text-zinc-600 text-base font-semibold truncate">
-              {service?.name ?? "Service"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 shrink-0 ml-2">
-            {service && (
-              <span className="text-zinc-800 font-semibold text-sm">Rs {service.price_mur}</span>
-            )}
-            <span className={
-              "text-xs font-semibold px-2 py-0.5 rounded-full " +
-              (STATUS_BADGE[booking.status] ?? "bg-zinc-100 text-zinc-600 border border-zinc-200")
-            }>
-              {STATUS_LABEL[booking.status]}
-            </span>
-          </div>
-        </div>
-
-        <div className="px-4 py-3 space-y-3">
-          {/* Staff */}
-          {staffMember && (
-            <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M14.121 7.879a3 3 0 11-4.242 4.242M9.879 9.879A3 3 0 0114.12 14.12
-                     M9.879 9.879L7 7m2.879 2.879l4.242 4.242M7 7l-3 3m3-3l3 3" />
-              </svg>
-              <span>{staffMember.name}</span>
+        <div className="p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl font-semibold tracking-tight tabular-nums text-[#1D1D1F]">
+                {formatTimeMU(booking.start_time)} &ndash; {formatTimeMU(booking.end_time)}
+              </span>
+              <span className="text-[#86868B]">&bull;</span>
+              <span className="text-sm font-medium text-[#1D1D1F]">{service?.name ?? "Service"}</span>
             </div>
+            {service && (
+              <span className="font-semibold text-sm text-[#1D1D1F]">
+                <span className="text-xs font-normal text-[#86868B]">Rs </span>{service.price_mur}
+              </span>
+            )}
+          </div>
+
+          {staffMember && (
+            <p className="text-xs text-[#86868B]">Stylist: <span className="text-[#1D1D1F] font-medium">{staffMember.name}</span></p>
           )}
 
-          {/* Customer */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="font-black text-zinc-900 text-lg truncate">{booking.customer_name}</p>
-              <p className="text-zinc-500 text-sm mt-0.5">{booking.customer_phone}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-[#1D1D1F] text-base">{booking.customer_name}</p>
+              <p className="text-xs text-[#86868B]">{booking.customer_phone}</p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <a href={"tel:" + booking.customer_phone}
-                className="flex min-h-10 items-center gap-1 px-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-medium transition-colors">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                Call
-              </a>
-            </div>
+            <a
+              href={"tel:" + booking.customer_phone}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#1D1D1F] text-xs font-medium transition"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+              Call
+            </a>
           </div>
 
-          {/* Big primary action: Complete & Collect */}
           <button
             onClick={() => handleStatus("completed")}
             disabled={updating}
-            className="w-full min-h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-base shadow-md shadow-emerald-600/25 transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full min-h-12 rounded-xl bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white font-medium text-sm shadow-[0_2px_6px_rgba(0,0,0,0.18)] transition-all flex items-center justify-center gap-2"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-[#34C759]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
             </svg>
             Complete &amp; Collect Rs {service?.price_mur ?? 0}
           </button>
 
-          {/* Secondary: status pills (no-show + cancel only) */}
           <div className="flex gap-2 pt-0.5">
             <button
               onClick={() => handleStatus("no_show")}
-              className="flex-1 h-9 whitespace-nowrap text-xs font-medium px-3 rounded-full border border-zinc-200 bg-white text-zinc-500 hover:border-zinc-400 hover:text-zinc-800 transition-colors"
+              className="flex-1 py-1.5 text-xs font-medium rounded-lg bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#86868B] hover:text-[#1D1D1F] transition"
             >
               No-Show
             </button>
             <button
               onClick={() => handleStatus("cancelled")}
-              className="flex-1 h-9 whitespace-nowrap text-xs font-medium px-3 rounded-full border border-zinc-200 bg-white text-zinc-500 hover:border-rose-400 hover:text-rose-700 transition-colors"
+              className="flex-1 py-1.5 text-xs font-medium rounded-lg bg-[#F5F5F7] hover:bg-[#FF3B30]/10 text-[#86868B] hover:text-[#FF3B30] transition"
             >
               Cancel
             </button>
@@ -995,71 +959,60 @@ function BookingCard({
     );
   }
 
-  // ── Normal card ────────────────────────────────────────────────────────────
+  // Normal Card (Apple Milled Surface)
   return (
     <div
       className={
-        "premium-surface rounded-[24px] overflow-hidden transition-opacity " +
-        (updating ? "opacity-60 pointer-events-none" : "opacity-100")
+        "rounded-2xl border bg-white p-5 transition-all " +
+        (isUpNext
+          ? "border-black/[0.08] ring-1 ring-[#34C759]/40 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_20px_rgba(52,199,89,0.08)]"
+          : "border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)]") +
+        (updating ? " opacity-60 pointer-events-none" : "")
       }
     >
-      {/* Up Next banner */}
-      {isUpNext && (
-        <div className="flex items-center gap-1.5 bg-emerald-600 px-4 py-1.5">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-          <span className="text-[11px] font-bold uppercase tracking-widest text-white">Up Next</span>
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-100/80 bg-white/60 px-4 py-4">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="font-black text-zinc-900 text-xl tracking-tight shrink-0">
-            {formatTimeMU(booking.start_time)} &ndash; {formatTimeMU(booking.end_time)}
-          </span>
-          <span className="text-zinc-300 shrink-0">&middot;</span>
-          <span className="text-zinc-600 text-base font-semibold truncate">
-            {service?.name ?? "Service"}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 shrink-0 ml-2">
-          {service && (
-            <span className="text-zinc-800 font-semibold text-sm">Rs {service.price_mur}</span>
-          )}
-          <span className={
-            "text-xs font-semibold px-2 py-0.5 rounded-full " +
-            (STATUS_BADGE[booking.status] ?? "bg-zinc-100 text-zinc-600 border border-zinc-200")
-          }>
-            {STATUS_LABEL[booking.status] ?? booking.status}
-          </span>
-        </div>
-      </div>
-
-      <div className="px-4 py-3 space-y-3">
-        {/* Stylist */}
-        {staffMember && (
-          <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-            <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M14.121 7.879a3 3 0 11-4.242 4.242M9.879 9.879A3 3 0 0114.12 14.12
-                   M9.879 9.879L7 7m2.879 2.879l4.242 4.242M7 7l-3 3m3-3l3 3" />
-            </svg>
-            <span>{staffMember.name}</span>
-          </div>
-        )}
-
-        {/* Customer */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="font-black text-zinc-900 text-lg truncate">{booking.customer_name}</p>
-            <p className="text-zinc-500 text-sm mt-0.5">{booking.customer_phone}</p>
+      <div className="space-y-3.5">
+        {/* Header Row */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-xl font-semibold tracking-tight tabular-nums text-[#1D1D1F] shrink-0">
+              {formatTimeMU(booking.start_time)} &ndash; {formatTimeMU(booking.end_time)}
+            </span>
+            <span className="text-[#86868B] shrink-0">&bull;</span>
+            <span className="text-sm font-medium text-[#1D1D1F] truncate">
+              {service?.name ?? "Service"}
+            </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <a href={"tel:" + booking.customer_phone}
-              className="flex min-h-12 items-center gap-1 px-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-medium transition-colors">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            {isUpNext && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#34C759]/10 text-[10px] font-semibold text-[#248A3D] uppercase tracking-wider border border-[#34C759]/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#34C759] animate-pulse" />
+                Up Next
+              </span>
+            )}
+            <AppleStatusBadge status={booking.status} />
+          </div>
+        </div>
+
+        {/* Stylist */}
+        {staffMember && (
+          <p className="text-xs text-[#86868B]">
+            Stylist: <span className="text-[#1D1D1F] font-medium">{staffMember.name}</span>
+          </p>
+        )}
+
+        {/* Customer & Call / WA */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-semibold text-[#1D1D1F] text-base truncate">{booking.customer_name}</p>
+            <p className="text-xs text-[#86868B] mt-0.5">{booking.customer_phone}</p>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <a
+              href={"tel:" + booking.customer_phone}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#1D1D1F] text-xs font-medium transition"
+            >
+              <svg className="w-3.5 h-3.5 text-[#1D1D1F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
               Call
             </a>
@@ -1067,98 +1020,79 @@ function BookingCard({
               href={"https://wa.me/" + waNum + "?text=" + waMsg}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex min-h-12 items-center gap-1 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-medium transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#34C759]/10 hover:bg-[#34C759]/20 text-[#248A3D] text-xs font-medium transition"
             >
-              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.098.546 4.14 1.587 5.945L.057 23.35a.99.99 0 001.244 1.206l5.526-1.493A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.9a9.9 9.9 0 01-5.031-1.37l-.36-.214-3.734 1.01 1.018-3.625-.234-.375A9.9 9.9 0 012.1 12C2.1 6.534 6.534 2.1 12 2.1S21.9 6.534 21.9 12 17.466 21.9 12 21.9z" />
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.098.546 4.14 1.587 5.945L.057 23.35a.99.99 0 001.244 1.206l5.526-1.493A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.9a9.9 9.9 0 01-5.031-1.37l-.36-.214-3.734 1.01 1.018-3.625-.234-.375A9.9 9.9 0 012.1 12C2.1 6.534 6.534 2.1 12 2.1S21.9 6.534 21.9 12 17.466 21.9 12 21.9z"/>
               </svg>
               WA
             </a>
           </div>
         </div>
 
-        {/* Juice deposit */}
+        {/* Juice Deposit Block */}
         {hasDeposit && (
-          <div className={
-            "rounded-xl border p-3 " +
-            (depositPending
-              ? "bg-amber-50 border-amber-200"
-              : booking.payment_status === "paid_in_full"
-                ? "bg-emerald-50 border-emerald-200"
-                : "bg-zinc-50 border-zinc-200")
-          }>
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-zinc-600 mb-0.5">
-                  MCB Juice &middot; Rs {service.deposit_required_mur}
-                </p>
-                {booking.juice_reference ? (
-                  <p className="text-xs font-mono text-zinc-500">Ref: {booking.juice_reference}</p>
-                ) : (
-                  <p className="text-xs text-zinc-400 italic">No reference yet</p>
-                )}
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className={
-                  "text-xs font-semibold px-2 py-0.5 rounded-full " +
-                  (PAYMENT_BADGE[booking.payment_status] ?? "bg-zinc-100 text-zinc-600")
-                }>
-                  {PAYMENT_LABEL[booking.payment_status] ?? booking.payment_status}
-                </span>
-                {depositPending && (
-                  <button onClick={handleDeposit}
-                    className="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
-                    Confirm
-                  </button>
-                )}
-              </div>
+          <div className="rounded-xl bg-[#F5F5F7] p-3 flex items-center justify-between gap-2 border border-black/[0.04]">
+            <div>
+              <p className="text-xs font-medium text-[#1D1D1F]">
+                MCB Juice &bull; <span className="text-[#86868B]">Rs </span>{service.deposit_required_mur}
+              </p>
+              {booking.juice_reference ? (
+                <p className="text-[11px] font-mono text-[#86868B]">Ref: {booking.juice_reference}</p>
+              ) : (
+                <p className="text-[11px] text-[#86868B] italic">No reference recorded</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <ApplePaymentBadge paymentStatus={booking.payment_status} />
+              {depositPending && (
+                <button
+                  onClick={handleDeposit}
+                  className="px-2.5 py-1 rounded-lg bg-[#34C759] hover:bg-[#2DB04D] text-white text-xs font-semibold shadow-sm transition"
+                >
+                  Verify
+                </button>
+              )}
             </div>
           </div>
         )}
 
-        {/* Status pills (non-terminal, non-in-chair) */}
-        {!isTerminal && (
-          <div className="flex flex-nowrap gap-1.5 overflow-x-auto pt-0.5 pb-1">
-            {STATUS_ACTIONS.map((s) => {
-              const isCurrent = booking.status === s;
-              return (
-                <button
-                  key={s}
-                  onClick={() => handleStatus(s)}
-                  disabled={isCurrent}
-                  className={
-                    isCurrent
-                      ? "h-9 min-h-9 whitespace-nowrap text-xs font-semibold px-3 rounded-full border " +
-                        (STATUS_BADGE[s] ?? "bg-zinc-100 text-zinc-600 border-zinc-200")
-                      : "h-9 min-h-9 whitespace-nowrap text-xs font-medium px-3 rounded-full border border-zinc-200 " +
-                        "bg-white text-zinc-500 hover:border-zinc-400 hover:text-zinc-800 transition-colors"
-                  }
-                >
-                  {STATUS_LABEL[s]}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {/* Status Pills */}
+        <div className="flex flex-nowrap gap-1.5 overflow-x-auto pt-1">
+          {STATUS_ACTIONS.map((s) => {
+            const isCurrent = booking.status === s;
+            return (
+              <button
+                key={s}
+                onClick={() => handleStatus(s)}
+                disabled={isCurrent}
+                className={
+                  isCurrent
+                    ? "px-3 py-1.5 rounded-full text-xs font-semibold bg-[#1D1D1F] text-white shadow-sm"
+                    : "px-3 py-1.5 rounded-full text-xs font-medium bg-[#F5F5F7] text-[#86868B] hover:text-[#1D1D1F] hover:bg-[#E8E8ED] transition"
+                }
+              >
+                {STATUS_LABEL[s]}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── Now Divider ──────────────────────────────────────────────────────────────
+// ─── Apple HIG Scrubber Indicator ─────────────────────────────────────────────
 
-function NowDivider({ timeStr }: { timeStr: string }) {
+function AppleNowScrubber({ currentTime }: { currentTime: string }) {
   return (
-    <div className="flex items-center gap-2 py-1 select-none">
-      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-emerald-400 to-transparent" />
-      <div className="flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1 shadow-sm shadow-emerald-200">
-        <span className="inline-block h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-        <span className="text-[11px] font-bold uppercase tracking-widest text-white">
-          NOW &bull; {timeStr}
-        </span>
-      </div>
-      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-emerald-400 to-transparent" />
+    <div className="flex items-center gap-3 my-3 text-xs font-semibold text-[#86868B] select-none">
+      <div className="h-px bg-red-400/60 flex-1" />
+      <span className="text-red-500 uppercase tracking-widest text-[10px]">
+        NOW &bull; {currentTime}
+      </span>
+      <div className="h-px bg-red-400/60 flex-1" />
     </div>
   );
 }
@@ -1207,12 +1141,12 @@ export default function DashboardClient({
   const [walkInLoading, setWalkInLoading] = useState(false);
   const [walkInNotice, setWalkInNotice]   = useState<string | null>(null);
 
-  // Live clock — tick every 60 s
+  // Live clock: update every 30 seconds as requested
   const [clockTime, setClockTime] = useState<string>(nowTimeMU());
   const clockRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
     setClockTime(nowTimeMU());
-    clockRef.current = setInterval(() => setClockTime(nowTimeMU()), 60_000);
+    clockRef.current = setInterval(() => setClockTime(nowTimeMU()), 30_000);
     return () => { if (clockRef.current) clearInterval(clockRef.current); };
   }, []);
 
@@ -1331,7 +1265,7 @@ export default function DashboardClient({
     }
   }
 
-  // ── Walk-in ───────────────────────────────────────────────────────────────
+  // ── Walk-in Block Action ──────────────────────────────────────────────────
   async function blockWalkIn() {
     if (walkInLoading) return;
     setWalkInLoading(true);
@@ -1374,7 +1308,7 @@ export default function DashboardClient({
     } catch { fetchBookings(selectedDate); }
   }
 
-  // ── Derived ───────────────────────────────────────────────────────────────
+  // ── Derived Filter & Metrics ──────────────────────────────────────────────
   const filtered = bookings.filter((b) => {
     if (filter === "confirmed") return b.status === "confirmed";
     if (filter === "deposit")   return b.payment_status === "deposit_submitted";
@@ -1384,20 +1318,18 @@ export default function DashboardClient({
   });
 
   const activeBookings  = bookings.filter((b) => b.status !== "cancelled");
-  const estRevenue      = activeBookings.reduce((s, b) => s + (serviceMap[b.service_id]?.price_mur ?? 0), 0);
+  const estRevenue      = activeBookings.reduce((s, b) => s + (serviceMap[b.service_id]?.price_mur ?? 300), 0);
   const pendingDeposits = bookings.filter((b) => b.payment_status === "deposit_submitted").length;
   const pendingRefunds  = bookings.filter((b) => b.refund_status === "pending").length;
 
-  // Recompute every render (clock tick forces 1-min re-render)
   const nowMs = Date.now();
 
-  // NOW divider: before the first booking whose end_time >= now
-  // (this means it sits BEFORE any ongoing or future slot, i.e., after all fully ended slots)
+  // NOW scrubber: sits right before the first appointment that hasn't ended yet
   const nowDividerIndex: number = isToday
     ? filtered.findIndex((b) => new Date(b.end_time).getTime() >= nowMs)
     : -1;
 
-  // Up Next: first confirmed/pending booking that starts STRICTLY after now (not ongoing)
+  // Up Next: earliest confirmed/pending appointment starting strictly in the future
   const upNextId: string | null = (() => {
     if (!isToday) return null;
     const found = filtered.find(
@@ -1412,179 +1344,231 @@ export default function DashboardClient({
   if (!hydrated) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-5">
-        <div className="h-8 w-40 animate-pulse rounded-xl bg-zinc-200" />
-        <div className="mt-5 h-24 animate-pulse rounded-[22px] bg-white" />
+        <div className="h-8 w-40 animate-pulse rounded-xl bg-black/[0.06]" />
+        <div className="mt-5 h-24 animate-pulse rounded-2xl bg-white" />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4 px-4 py-3 sm:space-y-5 sm:py-8">
-      {/* Header */}
-      <div className="premium-rise flex items-center justify-between gap-3">
+    <div className="mx-auto max-w-3xl space-y-4 px-4 py-4 sm:space-y-6 sm:py-8">
+      {/* ── Dashboard Header ── */}
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">
+          <p className="text-[11px] font-semibold tracking-wider uppercase text-[#86868B]">
             Today at the chair
           </p>
-          <h1 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-zinc-950 sm:text-2xl">
+          <h1 className="text-2xl font-semibold tracking-tight text-[#1D1D1F] sm:text-3xl">
             Bookings
           </h1>
         </div>
+
         <div className="flex items-center gap-2">
-          {/* Live clock */}
-          <div className="rounded-2xl bg-zinc-900 px-4 py-2 text-center shadow-md">
-            <span className="block font-black text-xl text-white tracking-tight tabular-nums">{clockTime}</span>
-            <span className="block text-[10px] font-medium text-zinc-400 uppercase tracking-widest mt-0.5">Mauritius</span>
+          {/* Live Clock: e.g. "14:05 • Grand Baie" */}
+          <div className="rounded-2xl bg-white border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] px-3.5 py-2 text-center">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#34C759] animate-pulse" />
+              <span className="font-semibold text-sm tracking-tight tabular-nums text-[#1D1D1F]">
+                {clockTime} &bull; {salonName}
+              </span>
+            </div>
           </div>
-          <div className="rounded-2xl bg-white/70 px-3 py-2 text-right text-xs text-zinc-500 shadow-sm">
-            <span className="block font-semibold text-zinc-950">
+
+          <div className="rounded-2xl bg-white border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] px-3.5 py-2 text-right text-xs">
+            <span className="block font-semibold text-[#1D1D1F]">
               {selectedDate === todayStr ? "Today" : selectedDate}
             </span>
-            <span>{bookings.length} appointments</span>
+            <span className="text-[#86868B]">{bookings.length} total</span>
           </div>
         </div>
       </div>
 
-      {/* Metrics */}
-      <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-4 sm:gap-3">
-        <div className="premium-surface min-w-[110px] flex-1 rounded-[18px] px-3 py-2.5 sm:rounded-[22px] sm:px-4 sm:py-3.5">
-          <p className="text-xs font-medium text-zinc-400 mb-0.5">Bookings</p>
-          <p className="text-xl font-bold leading-none text-zinc-900 sm:text-2xl">{activeBookings.length}</p>
-          <p className="mt-0.5 text-[11px] text-zinc-400">active</p>
+      {/* ── Apple Health-Style Metric Cards ── */}
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+        {/* Bookings */}
+        <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] p-4 transition-all">
+          <p className="text-[11px] font-semibold tracking-wider uppercase text-[#86868B] mb-1">
+            Bookings
+          </p>
+          <p className="text-2xl font-semibold tracking-tight tabular-nums text-[#1D1D1F]">
+            {activeBookings.length}
+          </p>
+          <p className="text-xs text-[#86868B] mt-0.5">active today</p>
         </div>
-        <div className="premium-surface min-w-[110px] flex-1 rounded-[18px] px-3 py-2.5 sm:rounded-[22px] sm:px-4 sm:py-3.5">
-          <p className="text-xs font-medium text-zinc-400 mb-0.5">Revenue</p>
-          <p className="text-lg font-bold leading-none text-zinc-900 sm:text-xl">Rs {estRevenue}</p>
-          <p className="mt-0.5 text-[11px] text-zinc-400">est.</p>
+
+        {/* Revenue */}
+        <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] p-4 transition-all">
+          <p className="text-[11px] font-semibold tracking-wider uppercase text-[#86868B] mb-1">
+            Revenue
+          </p>
+          <p className="text-2xl font-semibold tracking-tight tabular-nums text-[#1D1D1F]">
+            <span className="text-sm font-normal text-[#86868B]">Rs </span>
+            {estRevenue.toLocaleString()}
+          </p>
+          <p className="text-xs text-[#86868B] mt-0.5">est. total</p>
         </div>
-        <div className={
-          pendingDeposits > 0
-            ? "min-w-[110px] flex-1 rounded-[18px] border border-amber-200 bg-amber-50 px-3 py-2.5 shadow-sm sm:rounded-[22px] sm:px-4 sm:py-3.5"
-            : "premium-surface min-w-[110px] flex-1 rounded-[18px] px-3 py-2.5 sm:rounded-[22px] sm:px-4 sm:py-3.5"
-        }>
-          <p className={"text-xs font-medium mb-0.5 " + (pendingDeposits > 0 ? "text-amber-600" : "text-zinc-400")}>Deposits</p>
-          <p className={"text-xl font-bold leading-none sm:text-2xl " + (pendingDeposits > 0 ? "text-amber-700" : "text-zinc-900")}>{pendingDeposits}</p>
-          <p className={"text-xs mt-0.5 " + (pendingDeposits > 0 ? "text-amber-500" : "text-zinc-400")}>to verify</p>
+
+        {/* Deposits */}
+        <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] p-4 transition-all">
+          <p className="text-[11px] font-semibold tracking-wider uppercase text-[#86868B] mb-1 flex items-center gap-1.5">
+            {pendingDeposits > 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#FF9500] animate-pulse" />}
+            Deposits
+          </p>
+          <p className="text-2xl font-semibold tracking-tight tabular-nums text-[#1D1D1F]">
+            {pendingDeposits}
+          </p>
+          <p className="text-xs text-[#86868B] mt-0.5">to verify</p>
         </div>
-        <div className={
-          pendingRefunds > 0
-            ? "min-w-[110px] flex-1 rounded-[18px] border border-rose-200 bg-rose-50 px-3 py-2.5 shadow-sm sm:rounded-[22px] sm:px-4 sm:py-3.5"
-            : "premium-surface min-w-[110px] flex-1 rounded-[18px] px-3 py-2.5 sm:rounded-[22px] sm:px-4 sm:py-3.5"
-        }>
-          <p className={"text-xs font-medium mb-0.5 " + (pendingRefunds > 0 ? "text-rose-600 font-bold" : "text-zinc-400")}>Refunds</p>
-          <p className={"text-xl font-bold leading-none sm:text-2xl " + (pendingRefunds > 0 ? "text-rose-700" : "text-zinc-900")}>{pendingRefunds}</p>
-          <p className={"text-xs mt-0.5 " + (pendingRefunds > 0 ? "text-rose-500 font-medium" : "text-zinc-400")}>pending</p>
+
+        {/* Refunds */}
+        <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] p-4 transition-all">
+          <p className="text-[11px] font-semibold tracking-wider uppercase text-[#86868B] mb-1 flex items-center gap-1.5">
+            {pendingRefunds > 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B30] animate-pulse" />}
+            Refunds
+          </p>
+          <p className="text-2xl font-semibold tracking-tight tabular-nums text-[#1D1D1F]">
+            {pendingRefunds}
+          </p>
+          <p className="text-xs text-[#86868B] mt-0.5">pending action</p>
         </div>
       </div>
 
-      {/* Walk-in block */}
-      <div className="flex flex-col gap-3 rounded-[24px] border border-zinc-200/80 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
-        <button
-          onClick={blockWalkIn}
-          disabled={walkInLoading}
-          className="min-h-12 rounded-2xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-zinc-900/15 transition hover:bg-black active:scale-95 disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
-        >
-          {walkInLoading ? (
-            <>
-              <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-              Blocking…
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Block 30m / Walk-in
-            </>
-          )}
-        </button>
-        <p className="text-xs text-zinc-500">
-          Instantly reserves the next free 30-minute window for someone at the counter.
-        </p>
+      {/* ── Operational Control: Block 30m / Walk-in ── */}
+      <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={blockWalkIn}
+            disabled={walkInLoading}
+            className="bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white font-medium text-sm rounded-xl px-4 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 shrink-0"
+          >
+            {walkInLoading ? (
+              <>
+                <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                Reserving…
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Block 30m / Walk-in
+              </>
+            )}
+          </button>
+
+          <p className="text-xs text-[#86868B]">
+            Instantly holds the next open chair for a counter walk-in.
+          </p>
+        </div>
+
         {walkInNotice && (
-          <div className="flex items-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-800 sm:ml-auto">
-            <span className="text-emerald-600">✓</span>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#34C759]/10 text-xs font-semibold text-[#248A3D] border border-[#34C759]/20 self-start sm:self-auto">
+            <span>✓</span>
             <span>{walkInNotice}</span>
           </div>
         )}
       </div>
 
-      {/* Date switcher */}
-      <div className="premium-surface rounded-[22px] p-3">
-        <div className="flex items-center gap-2">
-          <button onClick={() => selectDate(todayStr)}
-            className={selectedDate === todayStr
-              ? "flex-1 py-2 rounded-xl text-sm font-bold bg-zinc-900 text-white"
-              : "flex-1 py-2 rounded-xl text-sm font-medium bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"}>
-            Today
-          </button>
-          <button onClick={() => selectDate(tomorrowStr)}
-            className={selectedDate === tomorrowStr
-              ? "flex-1 py-2 rounded-xl text-sm font-bold bg-zinc-900 text-white"
-              : "flex-1 py-2 rounded-xl text-sm font-medium bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"}>
-            Tomorrow
-          </button>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => { if (e.target.value) selectDate(e.target.value); }}
-            className="flex-1 py-2 px-3 rounded-xl text-sm bg-zinc-100 text-zinc-700 border-0 focus:outline-none focus:ring-2 focus:ring-zinc-800 focus:ring-offset-1"
-          />
-        </div>
+      {/* ── Date Segmented Control ── */}
+      <div className="bg-[#F5F5F7] p-1 rounded-2xl flex items-center gap-1">
+        <button
+          onClick={() => selectDate(todayStr)}
+          className={
+            "flex-1 py-2 rounded-xl text-sm transition-all " +
+            (selectedDate === todayStr
+              ? "bg-[#1D1D1F] text-white font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
+              : "text-[#86868B] hover:text-[#1D1D1F] font-medium")
+          }
+        >
+          Today
+        </button>
+        <button
+          onClick={() => selectDate(tomorrowStr)}
+          className={
+            "flex-1 py-2 rounded-xl text-sm transition-all " +
+            (selectedDate === tomorrowStr
+              ? "bg-[#1D1D1F] text-white font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
+              : "text-[#86868B] hover:text-[#1D1D1F] font-medium")
+          }
+        >
+          Tomorrow
+        </button>
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => { if (e.target.value) selectDate(e.target.value); }}
+          className="flex-1 py-2 px-3 rounded-xl text-sm font-medium bg-transparent text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#1D1D1F] border-0"
+        />
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      {/* ── Filter Segmented Tabs ── */}
+      <div className="flex gap-1.5 overflow-x-auto pb-0.5">
         {FILTER_TABS.map((tab) => {
           const active = filter === tab.key;
           return (
-            <button key={tab.key} onClick={() => setFilter(tab.key)}
-              className={active
-                ? "flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-zinc-900 text-white shadow-sm"
-                : "flex-shrink-0 flex min-h-10 items-center gap-1.5 rounded-full border border-zinc-200 bg-white/70 px-4 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:border-zinc-400"}>
+            <button
+              key={tab.key}
+              onClick={() => setFilter(tab.key)}
+              className={
+                "flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs transition-all " +
+                (active
+                  ? "bg-[#1D1D1F] text-white font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.12)]"
+                  : "bg-[#F5F5F7] text-[#86868B] hover:text-[#1D1D1F] hover:bg-[#E8E8ED] font-medium")
+              }
+            >
               {tab.label}
               {tab.key === "deposit" && pendingDeposits > 0 && (
-                <span className="inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-amber-500 text-white text-xs font-bold">{pendingDeposits}</span>
+                <span className="inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-[#FF9500] text-white text-[10px] font-bold">
+                  {pendingDeposits}
+                </span>
               )}
               {tab.key === "refunds" && pendingRefunds > 0 && (
-                <span className="inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-rose-500 text-white text-xs font-bold">{pendingRefunds}</span>
+                <span className="inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-[#FF3B30] text-white text-[10px] font-bold">
+                  {pendingRefunds}
+                </span>
               )}
             </button>
           );
         })}
       </div>
 
-      {/* Booking list */}
+      {/* ── Timeline Bookings List ── */}
       {loading ? (
-        <div className="flex justify-center py-14">
-          <div className="h-8 w-8 rounded-full border-4 border-zinc-200 border-t-zinc-900 animate-spin" />
+        <div className="flex justify-center py-16">
+          <div className="h-7 w-7 rounded-full border-2 border-black/[0.08] border-t-[#1D1D1F] animate-spin" />
         </div>
       ) : fetchError ? (
-        <div className="rounded-2xl bg-rose-50 border border-rose-200 px-4 py-5 text-center">
-          <p className="text-rose-600 text-sm font-medium mb-2">{fetchError}</p>
-          <button onClick={() => fetchBookings(selectedDate)} className="text-sm text-zinc-500 underline hover:text-zinc-700">Retry</button>
+        <div className="rounded-2xl bg-white border border-black/[0.06] p-6 text-center shadow-sm">
+          <p className="text-[#FF3B30] text-sm font-medium mb-2">{fetchError}</p>
+          <button
+            onClick={() => fetchBookings(selectedDate)}
+            className="text-xs font-semibold text-[#1D1D1F] underline hover:no-underline"
+          >
+            Retry
+          </button>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-14 text-zinc-400">
-          <svg className="w-12 h-12 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="rounded-2xl bg-white border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col items-center justify-center py-16 text-[#86868B]">
+          <svg className="w-10 h-10 mb-2.5 opacity-30 text-[#86868B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          <p className="font-semibold text-zinc-500">No bookings found</p>
-          <p className="text-sm mt-1 text-zinc-400">{selectedDate}</p>
+          <p className="font-semibold text-[#1D1D1F]">No bookings scheduled</p>
+          <p className="text-xs mt-0.5 text-[#86868B]">{selectedDate}</p>
         </div>
       ) : (
         <div className="space-y-3 pb-8">
           {filtered.map((booking, idx) => {
-            const showNowDivider = isToday && nowDividerIndex >= 0 && idx === nowDividerIndex;
+            const showNowScrubber = isToday && nowDividerIndex >= 0 && idx === nowDividerIndex;
 
             if (isWalkIn(booking) && booking.status === "confirmed") {
               return (
                 <div key={booking.id}>
-                  {showNowDivider && <NowDivider timeStr={clockTime} />}
+                  {showNowScrubber && <AppleNowScrubber currentTime={clockTime} />}
                   <WalkInCard
                     booking={booking}
                     nowMs={nowMs}
+                    servicePrice={serviceMap[booking.service_id]?.price_mur ?? 300}
                     onMarkCompleted={handleWalkInCompleted}
                     onRelease={handleWalkInRelease}
                   />
@@ -1594,7 +1578,7 @@ export default function DashboardClient({
 
             return (
               <div key={booking.id}>
-                {showNowDivider && <NowDivider timeStr={clockTime} />}
+                {showNowScrubber && <AppleNowScrubber currentTime={clockTime} />}
                 <BookingCard
                   booking={booking}
                   service={serviceMap[booking.service_id]}
@@ -1609,13 +1593,14 @@ export default function DashboardClient({
               </div>
             );
           })}
-          {/* Divider at end if all slots are fully ended */}
+          {/* NOW scrubber at bottom if all appointments are in the past */}
           {isToday && nowDividerIndex === -1 && filtered.length > 0 && (
-            <NowDivider timeStr={clockTime} />
+            <AppleNowScrubber currentTime={clockTime} />
           )}
         </div>
       )}
 
+      {/* Cancellation Modal */}
       {cancellingBooking && (
         <CancellationModal
           booking={cancellingBooking}
@@ -1628,6 +1613,7 @@ export default function DashboardClient({
         />
       )}
 
+      {/* Record Refund Modal */}
       {refundingBooking && (
         <RefundCompleteModal
           booking={refundingBooking}
