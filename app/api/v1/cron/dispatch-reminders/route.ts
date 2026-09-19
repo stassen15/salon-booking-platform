@@ -4,10 +4,13 @@ import {
   NOTIFICATION_TEMPLATE_MAP,
   confirmationTemplateUsesButtons,
   sendWhatsAppTemplate,
+  sendWhatsAppText,
+  formatCancellationMessage,
+  type WhatsAppSendResult,
   type WhatsAppTemplateComponent,
 } from "@/lib/services/whatsapp";
 import { formatMauritiusDateTime } from "@/lib/timezone";
-import type { Json, NotificationType } from "@/types/database.types";
+import type { Json, RefundStatus } from "@/types/database.types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -71,7 +74,7 @@ export async function GET(request: Request) {
   for (const job of jobs) {
     const { data: booking, error: bookingError } = await admin
       .from("bookings")
-      .select("id, customer_name, start_time, status, salon_id")
+      .select("id, customer_name, customer_phone, start_time, status, salon_id, cancellation_reason, deposit_required_mur, refund_status, refund_reference")
       .eq("id", job.booking_id)
       .maybeSingle();
 
@@ -87,7 +90,7 @@ export async function GET(request: Request) {
       continue;
     }
 
-    if (booking.status === "cancelled" || booking.status === "no_show") {
+    if (job.notification_type !== "cancellation" && (booking.status === "cancelled" || booking.status === "no_show")) {
       await admin
         .from("notification_queue")
         .update({
@@ -104,24 +107,40 @@ export async function GET(request: Request) {
 
     const { data: salon } = await admin
       .from("salons")
-      .select("name")
+      .select("name, slug")
       .eq("id", job.salon_id)
       .maybeSingle();
 
-    const templateName =
-      NOTIFICATION_TEMPLATE_MAP[job.notification_type as NotificationType];
-
-    const result = await sendWhatsAppTemplate(
-      job.recipient_phone,
-      templateName,
-      templateComponents({
+    let result: WhatsAppSendResult;
+    if (job.notification_type === "cancellation") {
+      const message = formatCancellationMessage({
         customerName: booking.customer_name,
         salonName: salon?.name ?? "Salon",
         startTime: booking.start_time,
-        bookingId: booking.id,
-        includeActions: job.notification_type === "confirmation" ? confirmationTemplateUsesButtons() : true,
-      }),
-    );
+        reason: (booking as { cancellation_reason?: string | null }).cancellation_reason,
+        depositAmount: (booking as { deposit_required_mur?: number }).deposit_required_mur,
+        refundStatus: (booking as { refund_status?: RefundStatus }).refund_status,
+        refundReference: (booking as { refund_reference?: string | null }).refund_reference,
+        customerPhone: booking.customer_phone,
+        salonSlug: salon?.slug,
+      });
+      result = await sendWhatsAppText(job.recipient_phone, message);
+    } else {
+      const templateName =
+        NOTIFICATION_TEMPLATE_MAP[job.notification_type as keyof typeof NOTIFICATION_TEMPLATE_MAP];
+
+      result = await sendWhatsAppTemplate(
+        job.recipient_phone,
+        templateName,
+        templateComponents({
+          customerName: booking.customer_name,
+          salonName: salon?.name ?? "Salon",
+          startTime: booking.start_time,
+          bookingId: booking.id,
+          includeActions: job.notification_type === "confirmation" ? confirmationTemplateUsesButtons() : true,
+        }),
+      );
+    }
 
     if (result.ok) {
       sent += 1;

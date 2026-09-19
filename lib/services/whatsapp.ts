@@ -124,8 +124,53 @@ export const NOTIFICATION_TEMPLATE_MAP = {
   confirmation: process.env.WHATSAPP_CONFIRMATION_TEMPLATE ?? "salon_booking_confirm",
   reminder_24h: "salon_reminder_24h",
   reminder_2h: "salon_reminder_2h",
+  cancellation: process.env.WHATSAPP_CANCELLATION_TEMPLATE ?? "salon_booking_cancel",
 } as const satisfies Record<string, WhatsAppTemplateName>;
 
 export function confirmationTemplateUsesButtons(): boolean {
   return process.env.WHATSAPP_CONFIRMATION_HAS_ACTION_BUTTONS === "true";
 }
+
+export function formatCancellationMessage(input: {
+  customerName: string;
+  salonName: string;
+  serviceName?: string;
+  startTime: string;
+  reason?: string | null;
+  refundStatus?: "not_required" | "pending" | "refunded" | "not_possible";
+  refundReference?: string | null;
+  depositAmount?: number;
+  customerPhone?: string;
+  salonSlug?: string;
+}): string {
+  const timeFormatted = new Intl.DateTimeFormat("en-MU", {
+    timeZone: "Indian/Mauritius",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(input.startTime));
+
+  let refundNote = "";
+  if (input.depositAmount && input.depositAmount > 0) {
+    if (input.refundStatus === "refunded") {
+      refundNote = `\n\n💳 *Remboursement Acompte:* Votre acompte de Rs ${input.depositAmount} a été remboursé par MCB Juice${input.refundReference ? ` (Réf: ${input.refundReference})` : ""}.`;
+    } else if (input.refundStatus === "pending") {
+      refundNote = `\n\n💳 *Remboursement Acompte:* Votre acompte de Rs ${input.depositAmount} vous sera remboursé par MCB Juice sur votre numéro (${input.customerPhone ?? ""}) dans les plus brefs délais.`;
+    }
+  }
+
+  const reasonText = input.reason ? `\n\n*Motif:* ${input.reason}` : "";
+  const rebookLink = input.salonSlug ? `\n\nPour replanifier votre rendez-vous: https://freshcuts.mu/${input.salonSlug}` : "";
+
+  return `Bonjour ${input.customerName},
+
+Nous regrettons de vous informer que votre rendez-vous chez *${input.salonName}* prévu le *${timeFormatted}*${input.serviceName ? ` (${input.serviceName})` : ""} a dû être annulé.${reasonText}${refundNote}
+
+Nous vous prions d'accepter nos sincères excuses pour ce contretemps.${rebookLink}
+
+L'équipe ${input.salonName}`;
+}
+

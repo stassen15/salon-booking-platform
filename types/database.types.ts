@@ -17,7 +17,8 @@ export type PaymentStatus = "unpaid" | "deposit_submitted" | "paid_in_full";
 
 export type NotificationStatus = "queued" | "sent" | "failed";
 
-export type NotificationType = "confirmation" | "reminder_24h" | "reminder_2h";
+export type NotificationType = "confirmation" | "reminder_24h" | "reminder_2h" | "cancellation";
+export type RefundStatus = "not_required" | "pending" | "refunded" | "not_possible";
 
 export interface Database {
   public: {
@@ -243,6 +244,10 @@ export interface Database {
           cancellation_reason: string | null;
           cancelled_at: string | null;
           cancelled_by: string | null;
+          refund_status: RefundStatus;
+          refund_reference: string | null;
+          refund_requested_at: string | null;
+          refunded_at: string | null;
         };
         Insert: {
           id?: string;
@@ -268,6 +273,10 @@ export interface Database {
           cancellation_reason?: string | null;
           cancelled_at?: string | null;
           cancelled_by?: string | null;
+          refund_status?: RefundStatus;
+          refund_reference?: string | null;
+          refund_requested_at?: string | null;
+          refunded_at?: string | null;
         };
         Update: {
           id?: string;
@@ -293,6 +302,10 @@ export interface Database {
           cancellation_reason?: string | null;
           cancelled_at?: string | null;
           cancelled_by?: string | null;
+          refund_status?: RefundStatus;
+          refund_reference?: string | null;
+          refund_requested_at?: string | null;
+          refunded_at?: string | null;
         };
         Relationships: [
           {

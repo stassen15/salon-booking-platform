@@ -32,7 +32,7 @@ export async function GET(request: Request) {
   let query = supabase
     .from("bookings")
     .select(
-      "id, salon_id, staff_id, service_id, customer_name, customer_phone, start_time, end_time, status, payment_status, juice_reference, juice_proof_url, notes, created_at",
+      "id, salon_id, staff_id, service_id, customer_name, customer_phone, start_time, end_time, status, payment_status, juice_reference, juice_proof_url, notes, cancellation_reason, cancelled_at, cancelled_by, refund_status, refund_reference, refund_requested_at, refunded_at, deposit_required_mur, created_at",
     )
     .eq("salon_id", salonId)
     .order("start_time", { ascending: true });

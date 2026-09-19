@@ -45,6 +45,9 @@ export const bookingAdminPatchSchema = z
     juiceReference: z.string().trim().min(3).max(80).optional(),
     juiceProofUrl: z.string().url().nullable().optional(),
     notes: z.string().trim().max(1000).nullable().optional(),
+    cancellationReason: z.string().trim().min(3).max(500).nullable().optional(),
+    refundStatus: z.enum(["not_required", "pending", "refunded", "not_possible"]).optional(),
+    refundReference: z.string().trim().max(120).nullable().optional(),
   })
   .refine(
     (value) =>
@@ -52,7 +55,10 @@ export const bookingAdminPatchSchema = z
       value.paymentStatus !== undefined ||
       value.juiceReference !== undefined ||
       value.juiceProofUrl !== undefined ||
-      value.notes !== undefined,
+      value.notes !== undefined ||
+      value.cancellationReason !== undefined ||
+      value.refundStatus !== undefined ||
+      value.refundReference !== undefined,
     { message: "At least one field is required" },
   );
 

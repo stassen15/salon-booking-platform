@@ -34,7 +34,7 @@ export default async function AdminPage() {
 
   const { data: salon } = await supabase
     .from("salons")
-    .select("id")
+    .select("id, name, slug")
     .eq("owner_id", user.id)
     .eq("is_active", true)
     .maybeSingle();
@@ -48,7 +48,8 @@ export default async function AdminPage() {
       .from("bookings")
       .select(
         "id, salon_id, staff_id, service_id, customer_name, customer_phone, " +
-          "start_time, end_time, status, payment_status, juice_reference, notes, created_at",
+          "start_time, end_time, status, payment_status, juice_reference, notes, " +
+          "cancellation_reason, cancelled_at, cancelled_by, refund_status, refund_reference, refund_requested_at, refunded_at, deposit_required_mur, created_at",
       )
       .eq("salon_id", salon.id)
       .gte("start_time", from)
@@ -76,6 +77,7 @@ export default async function AdminPage() {
       services={(servicesRes.data ?? []) as unknown as ServiceInfo[]}
       staff={(staffRes.data ?? []) as unknown as StaffInfo[]}
       todayStr={todayStr}
+      salon={{ name: salon.name, slug: salon.slug }}
     />
   );
 }
