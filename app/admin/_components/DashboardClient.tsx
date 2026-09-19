@@ -657,6 +657,164 @@ function CompletedRow({
   );
 }
 
+// ─── Compact Cancelled Row (Collapsible) ──────────────────────────────────────
+
+function CancelledRow({
+  booking,
+  service,
+  staffMember,
+  expanded,
+  onToggle,
+  onInitiateRefundComplete,
+}: {
+  booking: AdminBooking;
+  service: ServiceInfo | undefined;
+  staffMember: StaffInfo | undefined;
+  expanded: boolean;
+  onToggle: () => void;
+  onInitiateRefundComplete: (booking: AdminBooking) => void;
+}) {
+  const waNum = waDigits(booking.customer_phone);
+  const waMsg = encodeURIComponent(
+    "Hi " + booking.customer_name + ", regarding your cancelled booking at our salon..."
+  );
+
+  return (
+    <div className="rounded-[20px] border border-rose-200/80 bg-rose-50/40 overflow-hidden transition-all duration-200">
+      {/* Clickable compact row header */}
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 text-left hover:bg-rose-50/90 transition-colors"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="inline-flex items-center justify-center text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200 shrink-0">
+            Cancelled
+          </span>
+          <span className="text-xs text-zinc-500 font-medium line-through truncate">
+            {formatTimeMU(booking.start_time)} – {formatTimeMU(booking.end_time)} &bull; {service?.name ?? "Service"}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs text-zinc-700 font-semibold truncate max-w-[110px] sm:max-w-[160px]">
+            {booking.customer_name}
+          </span>
+          {booking.refund_status === "pending" && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 shrink-0 animate-pulse">
+              <span>⚠️</span> Refund Due
+            </span>
+          )}
+          <svg
+            className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      {/* Expanded details */}
+      {expanded && (
+        <div className="px-4 pb-4 pt-1 space-y-3 border-t border-rose-100 bg-white/70">
+          {/* Barber & Price row */}
+          <div className="flex items-center justify-between text-xs text-zinc-500 pt-2">
+            {staffMember ? (
+              <span className="flex items-center gap-1">
+                <span>Barber:</span> <strong className="text-zinc-800">{staffMember.name}</strong>
+              </span>
+            ) : <span />}
+            {service && (
+              <span className="font-semibold text-zinc-700">Rs {service.price_mur}</span>
+            )}
+          </div>
+
+          {/* Customer & Quick Contact */}
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="font-bold text-zinc-900 text-sm">{booking.customer_name}</p>
+              <p className="text-xs text-zinc-500">{booking.customer_phone}</p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <a
+                href={"tel:" + booking.customer_phone}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-medium transition"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                Call
+              </a>
+              <a
+                href={"https://wa.me/" + waNum + "?text=" + waMsg}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-medium transition"
+              >
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.098.546 4.14 1.587 5.945L.057 23.35a.99.99 0 001.244 1.206l5.526-1.493A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.9a9.9 9.9 0 01-5.031-1.37l-.36-.214-3.734 1.01 1.018-3.625-.234-.375A9.9 9.9 0 012.1 12C2.1 6.534 6.534 2.1 12 2.1S21.9 6.534 21.9 12 17.466 21.9 12 21.9z"/>
+                </svg>
+                WA
+              </a>
+            </div>
+          </div>
+
+          {/* Reason & Meta */}
+          <div className="rounded-xl bg-rose-50/80 border border-rose-200/70 p-3 space-y-2 text-xs">
+            <div className="flex items-center justify-between text-rose-800 font-bold">
+              <span>Cancelled {booking.cancelled_by ? "by Salon" : "by Customer"}</span>
+              {booking.cancelled_at && (
+                <span className="text-[11px] font-normal text-rose-500">
+                  {formatTimeMU(booking.cancelled_at)}
+                </span>
+              )}
+            </div>
+            {booking.cancellation_reason && (
+              <p className="text-rose-700 italic bg-white/70 rounded-lg p-2 border border-rose-100">
+                &ldquo;{booking.cancellation_reason}&rdquo;
+              </p>
+            )}
+
+            {/* Refund Pending */}
+            {booking.refund_status === "pending" && (
+              <div className="pt-2 border-t border-rose-200/70 flex items-center justify-between gap-2">
+                <div>
+                  <p className="font-bold text-amber-800">
+                    ⚠️ Deposit Refund Due: Rs {booking.deposit_required_mur || service?.deposit_required_mur || 0}
+                  </p>
+                  <p className="text-[11px] text-amber-700">Awaiting MCB Juice transfer</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onInitiateRefundComplete(booking)}
+                  className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm transition active:scale-95 shrink-0"
+                >
+                  Record Refund
+                </button>
+              </div>
+            )}
+
+            {/* Refunded */}
+            {booking.refund_status === "refunded" && (
+              <div className="pt-2 border-t border-rose-200/70 flex items-center gap-1.5 text-emerald-700 font-semibold">
+                <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span>
+                  Deposit Refunded via Juice{booking.refund_reference ? ` (Ref: ${booking.refund_reference})` : ""}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── BookingCard ──────────────────────────────────────────────────────────────
 
 function BookingCard({
@@ -682,6 +840,7 @@ function BookingCard({
 }) {
   // ── All hooks first (no conditional hooks) ─────────────────────────────────
   const [updating, setUpdating] = useState(false);
+  const [cancelledExpanded, setCancelledExpanded] = useState(false);
 
   const inChair = bookingIsInChair(booking, nowMs);
   const minsRemaining = inChair
@@ -718,8 +877,19 @@ function BookingCard({
     return <CompletedRow booking={booking} service={service} />;
   }
 
-  // ── Tier 2: Cancelled detail block ────────────────────────────────────────
-  // (cancelled bookings still need their full detail for refund tracking)
+  // ── Tier 2: Cancelled → collapsible compact row ───────────────────────────
+  if (booking.status === "cancelled") {
+    return (
+      <CancelledRow
+        booking={booking}
+        service={service}
+        staffMember={staffMember}
+        expanded={cancelledExpanded}
+        onToggle={() => setCancelledExpanded((prev) => !prev)}
+        onInitiateRefundComplete={onInitiateRefundComplete}
+      />
+    );
+  }
 
   // ── Tier 3 / Hero: IN CHAIR ────────────────────────────────────────────────
   if (inChair) {
@@ -909,7 +1079,7 @@ function BookingCard({
         </div>
 
         {/* Juice deposit */}
-        {hasDeposit && booking.status !== "cancelled" && (
+        {hasDeposit && (
           <div className={
             "rounded-xl border p-3 " +
             (depositPending
@@ -944,58 +1114,6 @@ function BookingCard({
                 )}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Cancellation detail */}
-        {booking.status === "cancelled" && (
-          <div className="rounded-2xl bg-rose-50/70 border border-rose-200/80 p-3.5 space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-rose-800">
-                <svg className="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Cancelled {booking.cancelled_by ? "by Salon" : "by Customer"}</span>
-              </div>
-              {booking.cancelled_at && (
-                <span className="text-[11px] text-rose-500 font-medium">
-                  {formatTimeMU(booking.cancelled_at)}
-                </span>
-              )}
-            </div>
-            {booking.cancellation_reason && (
-              <p className="text-xs text-rose-700 italic bg-white/70 rounded-xl p-2.5 border border-rose-100">
-                &ldquo;{booking.cancellation_reason}&rdquo;
-              </p>
-            )}
-            {booking.refund_status === "pending" && (
-              <div className="pt-2 border-t border-rose-200/70 flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-xs font-bold text-amber-800 flex items-center gap-1">
-                    <span>⚠️</span> Deposit Refund Due: Rs {booking.deposit_required_mur || service?.deposit_required_mur || 0}
-                  </p>
-                  <p className="text-[11px] text-amber-700">Client awaiting MCB Juice transfer</p>
-                </div>
-                <button
-                  onClick={() => onInitiateRefundComplete(booking)}
-                  className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm transition active:scale-95 shrink-0"
-                >
-                  Record Refund
-                </button>
-              </div>
-            )}
-            {booking.refund_status === "refunded" && (
-              <div className="pt-2 border-t border-rose-200/70 flex items-center gap-1.5 text-xs text-emerald-700 font-semibold">
-                <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                <span>
-                  Deposit Refunded via Juice
-                  {booking.refund_reference ? " (Ref: " + booking.refund_reference + ")" : ""}
-                </span>
-              </div>
-            )}
           </div>
         )}
 
