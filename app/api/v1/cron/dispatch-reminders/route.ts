@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { jsonError, jsonOk } from "@/lib/http";
 import {
   NOTIFICATION_TEMPLATE_MAP,
+  confirmationTemplateUsesButtons,
   sendWhatsAppTemplate,
   type WhatsAppTemplateComponent,
 } from "@/lib/services/whatsapp";
@@ -27,19 +28,18 @@ function templateComponents(input: {
   salonName: string;
   startTime: string;
   bookingId: string;
+  includeActions: boolean;
 }): WhatsAppTemplateComponent[] {
-  return [
-    {
+  const body = {
       type: "body",
       parameters: [
         { type: "text", text: input.customerName },
-        { type: "text", text: input.salonName },
+        { type: "text", text: process.env.WHATSAPP_CONFIRMATION_TEMPLATE ? input.bookingId.slice(0, 6).toUpperCase() : input.salonName },
         { type: "text", text: formatMauritiusDateTime(input.startTime) },
       ],
-    },
-    { type: "button", sub_type: "quick_reply", index: "0", parameters: [{ type: "payload", payload: `confirm:${input.bookingId}` }] },
-    { type: "button", sub_type: "quick_reply", index: "1", parameters: [{ type: "payload", payload: `cancel:${input.bookingId}` }] },
-  ];
+    } satisfies WhatsAppTemplateComponent;
+  if (!input.includeActions) return [body];
+  return [body, { type: "button", sub_type: "quick_reply", index: "0", parameters: [{ type: "payload", payload: `confirm:${input.bookingId}` }] }, { type: "button", sub_type: "quick_reply", index: "1", parameters: [{ type: "payload", payload: `cancel:${input.bookingId}` }] }];
 }
 
 export async function GET(request: Request) {
@@ -119,6 +119,7 @@ export async function GET(request: Request) {
         salonName: salon?.name ?? "Salon",
         startTime: booking.start_time,
         bookingId: booking.id,
+        includeActions: job.notification_type === "confirmation" ? confirmationTemplateUsesButtons() : true,
       }),
     );
 

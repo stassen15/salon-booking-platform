@@ -2,10 +2,7 @@ import type { Json } from "@/types/database.types";
 
 const GRAPH_VERSION = "v21.0";
 
-export type WhatsAppTemplateName =
-  | "salon_booking_confirm"
-  | "salon_reminder_24h"
-  | "salon_reminder_2h";
+export type WhatsAppTemplateName = string;
 
 export type WhatsAppTemplateComponent = {
   type: "header" | "body" | "button";
@@ -101,7 +98,7 @@ export async function sendWhatsAppTemplate(
     type: "template",
     template: {
       name: templateName,
-      language: { code: "en" },
+      language: { code: process.env.WHATSAPP_TEMPLATE_LANGUAGE ?? "en_US" },
       ...(components.length > 0 ? { components } : {}),
     },
   });
@@ -124,7 +121,11 @@ export async function sendWhatsAppText(
 }
 
 export const NOTIFICATION_TEMPLATE_MAP = {
-  confirmation: "salon_booking_confirm",
+  confirmation: process.env.WHATSAPP_CONFIRMATION_TEMPLATE ?? "salon_booking_confirm",
   reminder_24h: "salon_reminder_24h",
   reminder_2h: "salon_reminder_2h",
 } as const satisfies Record<string, WhatsAppTemplateName>;
+
+export function confirmationTemplateUsesButtons(): boolean {
+  return process.env.WHATSAPP_CONFIRMATION_HAS_ACTION_BUTTONS === "true";
+}
