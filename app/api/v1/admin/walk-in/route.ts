@@ -1,5 +1,6 @@
 import { addMinutes } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { jsonError, jsonOk } from "@/lib/http";
 import { requireSalonOwner, resolveOwnedSalonId } from "@/lib/auth/require-owner";
 
@@ -15,7 +16,10 @@ export async function POST(request: Request) {
   const salonId = resolveOwnedSalonId(auth.context, body.salonId);
   if (!salonId) return jsonError("Salon not found", 404);
 
+  // Use regular client for SELECT (respects RLS on reads)
   const supabase = await createClient();
+  // Use admin client for INSERT to bypass RLS (owner-initiated walk-in)
+  const adminSupabase = createAdminClient();
 
   // Resolve staffId (use first active staff if not specified)
   let staffId = body.staffId;
@@ -48,7 +52,7 @@ export async function POST(request: Request) {
   const start = new Date(Math.ceil(Date.now() / (15 * 60_000)) * (15 * 60_000));
   const end = addMinutes(start, duration);
 
-  const { data, error } = await supabase
+  const { data, error } = await adminSupabase
     .from("bookings")
     .insert({
       salon_id: salonId,
@@ -69,6 +73,9 @@ export async function POST(request: Request) {
     )
     .single();
 
-  if (error) return jsonError("Failed to create walk-in booking", 500, error.message);
+  if (error) {
+    console.error("[walk-in] insert error:", error);
+    return jsonError("Failed to create walk-in booking", 500, error.message);
+  }
   return jsonOk({ booking: data }, 201);
 }
