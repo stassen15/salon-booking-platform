@@ -201,44 +201,49 @@ function DetailRow({
   );
 }
 
-// ─── Step indicator ────────────────────────────────────────────────────────────
+// ─── Boutique Salon Header ───────────────────────────────────────────────────
 
-function StepIndicator({ current, total }: { current: Step; total: number }) {
+function BoutiqueSalonHeader({
+  name,
+  address,
+  district,
+}: {
+  name: string;
+  address: string;
+  district: string;
+}) {
+  const monogram =
+    name
+      .split(" ")
+      .map((w) => w[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "S";
+
+  const locationText = [address, district].filter(Boolean).join(", ") || "Mauritius";
+
   return (
-    <div className="flex items-center justify-center gap-2 py-4">
-      {Array.from({ length: total }, (_, i) => i + 1).map((n) => (
-        <div key={n} className="flex items-center gap-2">
-          <div
-            className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
-              n < current
-                ? "bg-indigo-500 text-white"
-                : n === current
-                  ? "bg-indigo-600 text-white ring-2 ring-indigo-600 ring-offset-2"
-                  : "bg-zinc-200/80 text-zinc-400"
-            }`}
-          >
-            {n < current ? (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-              </svg>
-            ) : (
-              n
-            )}
-          </div>
-          {n < total && (
-            <div
-              className={`h-0.5 w-6 transition-all duration-300 ${
-                n < current ? "bg-indigo-500" : "bg-zinc-200"
-              }`}
-            />
-          )}
-        </div>
-      ))}
+    <div className="flex flex-col items-center text-center mb-6">
+      <div className="h-14 w-14 rounded-full bg-[#1D1D1F] text-white flex items-center justify-center font-bold text-lg shadow-sm">
+        {monogram}
+      </div>
+      <h1 className="text-xl font-bold tracking-tight text-[#1D1D1F] mt-2">
+        {name}
+      </h1>
+      <div className="flex items-center justify-center gap-2 text-xs text-[#86868B] mt-1">
+        <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          Open for bookings
+        </span>
+        <span>·</span>
+        <span>{locationText}</span>
+      </div>
     </div>
   );
 }
 
-// ─── Service card ──────────────────────────────────────────────────────────────
+// ─── Tactile Service Card ──────────────────────────────────────────────────────
 
 function ServiceCard({
   service,
@@ -250,69 +255,63 @@ function ServiceCard({
   onSelect: () => void;
 }) {
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
-        className={`w-full min-h-[112px] text-left rounded-[24px] border p-5 transition-all duration-200 active:scale-[0.98] ${
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      className={`w-full text-left p-4 rounded-2xl transition-all cursor-pointer ${
         selected
-          ? "border-indigo-600 bg-indigo-600 text-white shadow-xl shadow-indigo-600/20"
-          : "border-zinc-200/80 bg-white/90 text-zinc-800 shadow-[0_8px_24px_rgba(15,23,42,0.04)] hover:border-zinc-300 hover:shadow-lg"
+          ? "border-2 border-[#1D1D1F] bg-zinc-50/50 shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
+          : "bg-white border border-zinc-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:border-zinc-300 active:scale-[0.98]"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
+        {/* Left side */}
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-base leading-snug">{service.name}</p>
+          <h3 className="font-semibold text-sm text-[#1D1D1F] leading-snug">
+            {service.name}
+          </h3>
           {service.description && (
-            <p
-              className={`text-sm mt-0.5 leading-relaxed ${
-                selected ? "text-zinc-300" : "text-zinc-500"
-              }`}
-            >
+            <p className="text-xs text-zinc-500 line-clamp-2 mt-0.5 leading-relaxed">
               {service.description}
             </p>
           )}
-          <div
-            className={`flex items-center gap-3 mt-2 text-sm ${
-              selected ? "text-zinc-300" : "text-zinc-500"
-            }`}
-          >
-            <span className="flex items-center gap-1">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              {service.duration_minutes} min
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-[11px] font-medium text-zinc-400">
+              ⏱ {service.duration_minutes} min
             </span>
             {service.deposit_required_mur > 0 && (
-              <span
-                className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                  selected ? "bg-zinc-700 text-zinc-200" : "bg-amber-50 text-amber-700"
-                }`}
-              >
+              <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-full">
                 Rs {service.deposit_required_mur} deposit
               </span>
             )}
           </div>
         </div>
-        <div className="text-right shrink-0">
-          <p className={`text-lg font-bold ${selected ? "text-white" : "text-zinc-900"}`}>
-            Rs {service.price_mur}
-          </p>
+
+        {/* Right side */}
+        <div className="text-right shrink-0 flex items-center gap-2.5">
+          <div>
+            <span className="text-xs font-normal text-zinc-400">Rs </span>
+            <span className="font-semibold text-base tabular-nums text-[#1D1D1F]">
+              {service.price_mur}
+            </span>
+          </div>
           {selected && (
-            <div className="mt-1 flex justify-end">
-              <div className="h-5 w-5 rounded-full bg-emerald-400 flex items-center justify-center">
-                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
+            <div className="h-5 w-5 rounded-full bg-[#1D1D1F] text-white flex items-center justify-center shrink-0">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
             </div>
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -332,7 +331,7 @@ function DatePicker({
   return (
     <div
       ref={scrollRef}
-      className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory"
+      className="flex gap-2.5 overflow-x-auto pb-2 snap-x snap-mandatory"
       style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
     >
       {days.map((day) => {
@@ -341,21 +340,21 @@ function DatePicker({
           <button
             key={day.toISOString()}
             onClick={() => onSelect(day)}
-          className={`snap-start flex-shrink-0 flex flex-col items-center justify-center w-16 min-h-[80px] rounded-2xl border transition-all duration-200 active:scale-95 ${
+            className={`snap-start flex-shrink-0 flex flex-col items-center justify-center w-14 min-h-[72px] rounded-2xl border transition-all duration-150 active:scale-95 ${
               isSelected
-                ? "border-indigo-600 bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
-                : "border-zinc-200/80 bg-white/80 text-zinc-700 hover:border-indigo-300"
+                ? "border-[#1D1D1F] bg-[#1D1D1F] text-white shadow-sm"
+                : "border-zinc-200/80 bg-white text-[#1D1D1F] hover:border-zinc-300"
             }`}
           >
             <span
-              className={`text-xs font-medium uppercase tracking-wide ${
+              className={`text-[10px] font-semibold uppercase tracking-wider ${
                 isSelected ? "text-zinc-300" : "text-zinc-400"
               }`}
             >
               {format(day, "EEE")}
             </span>
-            <span className="text-xl font-bold mt-0.5">{format(day, "d")}</span>
-            <span className={`text-xs ${isSelected ? "text-zinc-300" : "text-zinc-400"}`}>
+            <span className="text-lg font-bold mt-0.5">{format(day, "d")}</span>
+            <span className={`text-[10px] ${isSelected ? "text-zinc-300" : "text-zinc-400"}`}>
               {format(day, "MMM")}
             </span>
           </button>
@@ -386,7 +385,7 @@ function TimeSlotGrid({
     return (
       <div className="flex flex-col items-center justify-center py-10 text-zinc-400">
         <svg
-          className="w-12 h-12 mb-3 opacity-40"
+          className="w-10 h-10 mb-2 opacity-30"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -398,8 +397,8 @@ function TimeSlotGrid({
             d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
           />
         </svg>
-        <p className="font-medium text-zinc-500">No slots available</p>
-        <p className="text-sm mt-1">Try a different date</p>
+        <p className="font-semibold text-xs text-zinc-600">No slots available</p>
+        <p className="text-xs text-zinc-400 mt-0.5">Try selecting another date</p>
       </div>
     );
   }
@@ -409,12 +408,12 @@ function TimeSlotGrid({
       {rows.map((staffRow) => (
         <div key={staffRow.staffId}>
           {results.length > 1 && (
-            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">
               {staffRow.staffName}
             </p>
           )}
           {staffRow.slots.length === 0 ? (
-            <p className="text-sm text-zinc-400 py-2">No slots for this barber</p>
+            <p className="text-xs text-zinc-400 py-1">No slots for this barber</p>
           ) : (
             <div className="grid grid-cols-3 gap-2">
               {staffRow.slots.map((slot) => {
@@ -425,10 +424,10 @@ function TimeSlotGrid({
                   <button
                     key={slot.start}
                     onClick={() => onSelect(slot, staffRow.staffId)}
-                    className={`min-h-[48px] py-2.5 px-1 rounded-2xl border-2 text-sm font-semibold transition-all duration-150 active:scale-95 ${
+                    className={`min-h-[44px] py-2 px-1 rounded-xl border text-xs font-semibold transition-all duration-150 active:scale-95 ${
                       isSelected
-                        ? "border-indigo-600 bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
-                        : "border-zinc-200/80 bg-white/80 text-zinc-700 hover:border-indigo-300"
+                        ? "border-[#1D1D1F] bg-[#1D1D1F] text-white shadow-sm"
+                        : "border-zinc-200/80 bg-white text-[#1D1D1F] hover:border-zinc-300"
                     }`}
                   >
                     {formatTimeLocal(slot.start)}
@@ -439,31 +438,6 @@ function TimeSlotGrid({
           )}
         </div>
       ))}
-    </div>
-  );
-}
-
-// ─── Page header ───────────────────────────────────────────────────────────────
-
-function SalonHeader({ name, address, district }: { name: string; address: string; district: string }) {
-  return (
-    <div className="mb-1 flex items-center gap-3">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] bg-indigo-600 shadow-lg shadow-indigo-600/20">
-        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M14.121 7.879a3 3 0 11-4.242 4.242M9.879 9.879A3 3 0 0114.12 14.12M9.879 9.879L7 7m2.879 2.879l4.242 4.242M7 7l-3 3m3-3l3 3"
-          />
-        </svg>
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2"><h1 className="truncate text-lg font-semibold leading-tight tracking-[-0.03em] text-zinc-950">{name}</h1><span className="hidden rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 sm:inline">Open for bookings</span></div>
-        <p className="truncate text-xs text-zinc-500">
-          {address}, {district}
-        </p>
-      </div>
     </div>
   );
 }
@@ -677,109 +651,62 @@ export default function BookingPage() {
       `${salon.name}, ${salon.address}`,
     );
     return (
-      <div className="min-h-screen bg-zinc-50 flex flex-col">
-        <div className="bg-white border-b border-zinc-100 px-4 py-4 flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-zinc-900 flex items-center justify-center shrink-0">
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M14.121 7.879a3 3 0 11-4.242 4.242M9.879 9.879A3 3 0 0114.12 14.12M9.879 9.879L7 7m2.879 2.879l4.242 4.242M7 7l-3 3m3-3l3 3"
-              />
-            </svg>
-          </div>
-          <h1 className="font-bold text-zinc-900 text-lg leading-tight truncate">{salon.name}</h1>
-        </div>
-        <div className="flex-1 flex flex-col items-center justify-center p-6">
-          <div className="w-full max-w-sm">
-            <div className="flex justify-center mb-6">
-              <div className="h-20 w-20 rounded-full bg-emerald-50 flex items-center justify-center">
-                <div className="h-14 w-14 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg">
-                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <h2 className="text-2xl font-bold text-zinc-900 text-center mb-1">Booking Confirmed!</h2>
-            <p className="text-zinc-500 text-sm text-center mb-6">
-              {"We'll send a reminder before your appointment."}
-            </p>
-            <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden mb-4">
-              <div className="px-4 py-3 bg-zinc-900 text-white">
-                <p className="font-semibold">{selectedService?.name}</p>
-                <p className="text-zinc-300 text-sm">{salon.name}</p>
-              </div>
-              <div className="divide-y divide-zinc-100">
-                <DetailRow
-                  icon={<ClockIcon />}
-                  label="Date & Time"
-                  value={`${formatDateLabel(new Date(booking.start_time))} · ${formatTimeLocal(booking.start_time)}`}
-                />
-                <DetailRow
-                  icon={<DurationIcon />}
-                  label="Duration"
-                  value={`${selectedService?.duration_minutes} minutes`}
-                />
-                <DetailRow icon={<PersonIcon />} label="Customer" value={booking.customer_name} />
-                <DetailRow icon={<PhoneIcon />} label="Phone" value={booking.customer_phone} />
-                {depositRequired && (
-                  <DetailRow
-                    icon={<PayIcon />}
-                    label="Deposit"
-                    value={`Rs ${depositAmount} (Juice submitted)`}
-                  />
-                )}
-                <DetailRow
-                  icon={<TicketIcon />}
-                  label="Booking ID"
-                  value={`#${booking.id.slice(0, 8).toUpperCase()}`}
-                />
-              </div>
-            </div>
-            <div className="flex items-start gap-2 text-zinc-500 text-sm mb-6 px-1">
-              <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                />
+      <div className="min-h-screen bg-[#F5F5F7] py-8 px-4">
+        <div className="max-w-md mx-auto">
+          <BoutiqueSalonHeader
+            name={salon.name}
+            address={salon.address}
+            district={salon.district}
+          />
+          <div className="bg-white rounded-3xl border border-black/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.04)] p-6 text-center">
+            <div className="h-16 w-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
-              <span>
-                {salon.address}, {salon.district}
-              </span>
             </div>
+            <h2 className="text-xl font-bold text-[#1D1D1F] mb-1">Booking Confirmed!</h2>
+            <p className="text-[#86868B] text-xs mb-6">
+              We&apos;ll send a reminder before your appointment.
+            </p>
+
+            <div className="rounded-2xl bg-[#F5F5F7] border border-black/[0.04] p-4 text-left divide-y divide-zinc-200/60 mb-6">
+              <DetailRow
+                icon={<ClockIcon />}
+                label="Date & Time"
+                value={`${formatDateLabel(new Date(booking.start_time))} · ${formatTimeLocal(booking.start_time)}`}
+              />
+              <DetailRow
+                icon={<DurationIcon />}
+                label="Duration"
+                value={`${selectedService?.duration_minutes} minutes`}
+              />
+              <DetailRow icon={<PersonIcon />} label="Customer" value={booking.customer_name} />
+              <DetailRow icon={<PhoneIcon />} label="Phone" value={booking.customer_phone} />
+              {depositRequired && (
+                <DetailRow
+                  icon={<PayIcon />}
+                  label="Deposit"
+                  value={`Rs ${depositAmount} (Juice submitted)`}
+                />
+              )}
+              <DetailRow
+                icon={<TicketIcon />}
+                label="Booking ID"
+                value={`#${booking.id.slice(0, 8).toUpperCase()}`}
+              />
+            </div>
+
             <a
               href={calUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-3 w-full py-3.5 px-4 bg-white border-2 border-zinc-200 rounded-2xl font-semibold text-zinc-800 hover:border-zinc-400 transition-colors active:scale-[0.98] mb-3"
+              className="flex items-center justify-center gap-2.5 w-full py-3.5 px-4 bg-[#1D1D1F] text-white rounded-xl font-semibold text-sm hover:bg-black transition-all active:scale-[0.98] mb-3 shadow-sm"
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="4" width="18" height="18" rx="2" stroke="#4285F4" strokeWidth="1.8" />
-                <path d="M3 9h18" stroke="#4285F4" strokeWidth="1.8" />
-                <path d="M8 2v4M16 2v4" stroke="#4285F4" strokeWidth="1.8" strokeLinecap="round" />
-                <path
-                  d="M8 14l2 2 4-4"
-                  stroke="#34A853"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
               Add to Google Calendar
             </a>
             <button
               onClick={resetFlow}
-              className="w-full py-3 text-sm text-zinc-500 hover:text-zinc-700 transition-colors"
+              className="w-full py-2.5 text-xs text-[#86868B] hover:text-[#1D1D1F] transition-colors"
             >
               Book another appointment
             </button>
@@ -789,28 +716,35 @@ export default function BookingPage() {
     );
   }
 
-  // ── Steps 1–3 ──
+  // ── Steps 1–3: Apple-Grade Boutique Link-in-Bio Funnel ──
   return (
-    <div className="flex min-h-screen flex-col bg-[#f5f5f7]">
-      {/* Sticky header */}
-      <div className="safe-top sticky top-0 z-20 border-b border-zinc-200/70 bg-white/80 px-4 pt-4 pb-0 shadow-sm backdrop-blur-xl">
-        <SalonHeader name={salon.name} address={salon.address} district={salon.district} />
-        <StepIndicator current={step} total={3} />
-      </div>
+    <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F]">
+      <div className="max-w-md mx-auto px-4 pt-8 pb-32">
+        {/* 1. Salon Brand Identity & Profile Header */}
+        <BoutiqueSalonHeader
+          name={salon.name}
+          address={salon.address}
+          district={salon.district}
+        />
 
-      {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto bg-[#f5f5f7] px-3 py-4 sm:px-5">
-        <div className="mx-auto min-h-full max-w-2xl rounded-[32px] border border-white/80 bg-white/60 px-4 pb-36 pt-2 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:px-6">
+        {/* 2. Main White Card */}
+        <div className="bg-white rounded-3xl border border-black/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.04)] p-5 sm:p-6 mb-4">
+          {/* iOS-style Segmented Progress Bar */}
+          <div className="flex items-center gap-1.5 mb-5">
+            <div className={`h-1 flex-1 rounded-full ${step >= 1 ? "bg-[#1D1D1F]" : "bg-zinc-200"} transition-all`} />
+            <div className={`h-1 flex-1 rounded-full ${step >= 2 ? "bg-[#1D1D1F]" : "bg-zinc-200"} transition-all`} />
+            <div className={`h-1 flex-1 rounded-full ${step >= 3 ? "bg-[#1D1D1F]" : "bg-zinc-200"} transition-all`} />
+          </div>
 
-          {/* ── STEP 1: Service ── */}
+          {/* ── STEP 1: Service Selection ── */}
           {step === 1 && (
-            <div className="space-y-4 pt-4">
-              <div className="rounded-[24px] bg-white/50 p-1">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">Step 1 of 3</p>
-                <h2 className="text-2xl font-semibold tracking-[-0.04em] text-zinc-900">Choose a Service</h2>
-                <p className="mt-1 text-sm text-zinc-500">Select what you&apos;d like done today</p>
+            <div>
+              <div className="mb-4">
+                <h2 className="text-lg font-bold tracking-tight text-[#1D1D1F]">Choose a Service</h2>
+                <p className="text-xs text-[#86868B] mt-0.5">Select what you&apos;d like done today</p>
               </div>
-              <div className="space-y-3">
+
+              <div className="space-y-2.5">
                 {services.map((service) => (
                   <ServiceCard
                     key={service.id}
@@ -823,118 +757,120 @@ export default function BookingPage() {
             </div>
           )}
 
-          {/* ── STEP 2: Date & Time ── */}
+          {/* ── STEP 2: Date & Time Selection ── */}
           {step === 2 && (
-            <div className="space-y-5 pt-4">
-              <div>
-                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">Step 2 of 3</p>
-                <h2 className="text-2xl font-semibold tracking-[-0.04em] text-zinc-900">Pick a Date & Time</h2>
-                <p className="text-zinc-500 text-sm mt-0.5">
-                  {selectedService?.name} · {selectedService?.duration_minutes} min
+            <div>
+              <div className="mb-4">
+                <h2 className="text-lg font-bold tracking-tight text-[#1D1D1F]">Pick a Date &amp; Time</h2>
+                <p className="text-xs text-[#86868B] mt-0.5">
+                  {selectedService?.name} &bull; {selectedService?.duration_minutes} min
                 </p>
               </div>
 
-              <div>
-                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">
-                  Date
-                </p>
-                <DatePicker selected={selectedDate} onSelect={setSelectedDate} />
-              </div>
-
-              {catalog.staff.length > 1 && (
+              <div className="space-y-5">
                 <div>
-                  <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
-                    Barber (optional)
+                  <p className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-2.5">
+                    Date
                   </p>
-                  <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={() => {
-                        setSelectedStaffId(null);
-                        setSelectedSlot(null);
-                      }}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
-                        selectedStaffId === null
-                        ? "bg-indigo-600 text-white border-indigo-600"
-                          : "bg-white/80 text-zinc-700 border-zinc-200 hover:border-indigo-300"
-                      }`}
-                    >
-                      Any
-                    </button>
-                    {catalog.staff.map((s) => (
+                  <DatePicker selected={selectedDate} onSelect={setSelectedDate} />
+                </div>
+
+                {catalog.staff.length > 1 && (
+                  <div>
+                    <p className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-2">
+                      Barber / Stylist
+                    </p>
+                    <div className="flex gap-1.5 flex-wrap">
                       <button
-                        key={s.id}
+                        type="button"
                         onClick={() => {
-                          setSelectedStaffId(s.id);
+                          setSelectedStaffId(null);
                           setSelectedSlot(null);
                         }}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
-                          selectedStaffId === s.id
-                            ? "bg-indigo-600 text-white border-indigo-600"
-                            : "bg-white/80 text-zinc-700 border-zinc-200 hover:border-indigo-300"
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                          selectedStaffId === null
+                            ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
+                            : "bg-[#F5F5F7] text-[#1D1D1F] border-transparent hover:bg-zinc-200"
                         }`}
                       >
-                        {s.name}
+                        Any Available
                       </button>
-                    ))}
+                      {catalog.staff.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedStaffId(s.id);
+                            setSelectedSlot(null);
+                          }}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                            selectedStaffId === s.id
+                              ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
+                              : "bg-[#F5F5F7] text-[#1D1D1F] border-transparent hover:bg-zinc-200"
+                          }`}
+                        >
+                          {s.name}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <div>
-                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">
-                  Available Times
-                </p>
-                {loadingSlots ? (
-                  <div className="flex items-center justify-center py-10">
-                    <div className="h-8 w-8 rounded-full border-4 border-zinc-200 border-t-zinc-900 animate-spin" />
-                  </div>
-                ) : slotsError ? (
-                  <div className="py-6 text-center">
-                    <p className="text-red-500 text-sm">{slotsError}</p>
-                    <button
-                      onClick={() => setSelectedDate(new Date(selectedDate))}
-                      className="mt-2 text-sm text-zinc-500 underline"
-                    >
-                      Retry
-                    </button>
-                  </div>
-                ) : slotsData ? (
-                  <TimeSlotGrid
-                    results={slotsData.results}
-                    selectedSlot={selectedSlot}
-                    selectedStaffId={selectedStaffId}
-                    onSelect={(slot, staffId) => {
-                      setSelectedSlot(slot);
-                      setSelectedStaffId(staffId);
-                    }}
-                  />
-                ) : null}
+                <div>
+                  <p className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider mb-2.5">
+                    Available Times
+                  </p>
+                  {loadingSlots ? (
+                    <div className="flex items-center justify-center py-10">
+                      <div className="h-6 w-6 rounded-full border-2 border-zinc-300 border-t-[#1D1D1F] animate-spin" />
+                    </div>
+                  ) : slotsError ? (
+                    <div className="py-6 text-center">
+                      <p className="text-red-500 text-xs">{slotsError}</p>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDate(new Date(selectedDate))}
+                        className="mt-2 text-xs text-zinc-500 underline"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : slotsData ? (
+                    <TimeSlotGrid
+                      results={slotsData.results}
+                      selectedSlot={selectedSlot}
+                      selectedStaffId={selectedStaffId}
+                      onSelect={(slot, staffId) => {
+                        setSelectedSlot(slot);
+                        setSelectedStaffId(staffId);
+                      }}
+                    />
+                  ) : null}
+                </div>
               </div>
             </div>
           )}
 
-          {/* ── STEP 3: Customer + Juice Deposit ── */}
+          {/* ── STEP 3: Customer Details & Juice Deposit ── */}
           {step === 3 && (
-            <div className="space-y-5 pt-4">
-              <div>
-                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">Step 3 of 3</p>
-                <h2 className="text-2xl font-semibold tracking-[-0.04em] text-zinc-900">Your Details</h2>
-                <p className="text-zinc-500 text-sm mt-0.5">Almost done — tell us who you are</p>
+            <div>
+              <div className="mb-4">
+                <h2 className="text-lg font-bold tracking-tight text-[#1D1D1F]">Your Details</h2>
+                <p className="text-xs text-[#86868B] mt-0.5">Almost done — tell us who you are</p>
               </div>
 
-              {/* Booking summary chip */}
               {selectedService && selectedSlot && (
-                <div className="flex items-center gap-3 bg-zinc-900 text-white rounded-2xl px-4 py-3">
-                  <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-3 bg-[#1D1D1F] text-white rounded-2xl p-3.5 mb-5 shadow-sm">
+                  <div className="min-w-0">
                     <p className="font-semibold text-sm truncate">{selectedService.name}</p>
                     <p className="text-zinc-300 text-xs mt-0.5">
-                      {formatDateLabel(new Date(selectedSlot.start))} ·{" "}
-                      {formatTimeLocal(selectedSlot.start)}
+                      {formatDateLabel(new Date(selectedSlot.start))} &bull; {formatTimeLocal(selectedSlot.start)}
                     </p>
                   </div>
                   <button
+                    type="button"
                     onClick={() => setStep(2)}
-                    className="text-xs text-zinc-400 hover:text-zinc-200 underline shrink-0"
+                    className="text-xs text-zinc-400 hover:text-white underline shrink-0"
                   >
                     Change
                   </button>
@@ -943,7 +879,7 @@ export default function BookingPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-zinc-700 mb-1.5">
+                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#86868B] mb-1.5">
                     Full Name
                   </label>
                   <input
@@ -951,12 +887,12 @@ export default function BookingPage() {
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder="e.g. Ravi Jugurnath"
-                    className="w-full px-4 py-3.5 rounded-xl border-2 border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 transition-colors text-base"
+                    className="w-full px-3.5 py-3 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-sm text-[#1D1D1F] placeholder:text-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1D1D1F] transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-zinc-700 mb-1.5">
+                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#86868B] mb-1.5">
                     WhatsApp / Phone
                   </label>
                   <input
@@ -964,76 +900,69 @@ export default function BookingPage() {
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     placeholder="+230 5XXX XXXX"
-                    className="w-full px-4 py-3.5 rounded-xl border-2 border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 transition-colors text-base font-mono"
+                    className="w-full px-3.5 py-3 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-sm text-[#1D1D1F] placeholder:text-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1D1D1F] transition font-mono"
                   />
-                  <p className="text-xs text-zinc-400 mt-1">Reminders will be sent to this number</p>
+                  <p className="text-[11px] text-[#86868B] mt-1">
+                    Booking confirmation &amp; reminders will be sent to this number
+                  </p>
                 </div>
 
-                {/* MCB Juice Deposit */}
                 {depositRequired && (
-                  <div className="rounded-2xl border-2 border-amber-200 bg-amber-50 p-4 space-y-3">
-                    <div className="flex items-start gap-2">
-                      <div className="h-5 w-5 rounded-full bg-amber-400 flex items-center justify-center shrink-0 mt-0.5">
-                        <svg
-                          className="w-3 h-3 text-white"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2.5}
-                            d="M12 9v2m0 4h.01"
-                          />
-                        </svg>
+                  <div className="rounded-2xl border border-amber-200/80 bg-amber-50/60 p-4 space-y-3">
+                    <div className="flex items-start gap-2.5">
+                      <div className="h-5 w-5 rounded-full bg-[#FF9500] text-white flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">
+                        !
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-amber-800">
+                        <p className="text-xs font-bold uppercase tracking-wider text-amber-900">
                           MCB Juice Deposit Required
                         </p>
-                        <p className="text-xs text-amber-700 mt-0.5">
-                          {"A deposit of "}
-                          <span className="font-bold">
-                            Rs {depositAmount}
-                          </span>
-                          {" must be paid via MCB Juice to confirm your booking."}
+                        <p className="text-xs text-amber-800 mt-0.5">
+                          A deposit of <span className="font-bold font-mono">Rs {depositAmount}</span> must be paid via MCB Juice to lock in your slot.
                         </p>
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-xl border border-amber-200 p-3 space-y-2">
+                    <div className="bg-white rounded-xl border border-amber-200/60 p-3 space-y-2 text-xs">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-zinc-500 font-medium">Send to Juice number</span>
-                        <span className="text-sm font-bold text-zinc-900 font-mono">
-                          {juicePhone ?? "—"}
-                        </span>
+                        <span className="text-zinc-500">Send to Juice number</span>
+                        <span className="font-bold text-[#1D1D1F] font-mono">{juicePhone ?? "—"}</span>
                       </div>
                       {juiceAccountName && (
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-zinc-500 font-medium">Account name</span>
-                          <span className="text-sm font-semibold text-zinc-800">
-                            {juiceAccountName}
-                          </span>
+                          <span className="text-zinc-500">Account name</span>
+                          <span className="font-semibold text-[#1D1D1F]">{juiceAccountName}</span>
                         </div>
                       )}
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-zinc-500 font-medium">Amount</span>
-                          <span className="text-sm font-bold text-emerald-600">Rs {depositAmount}</span>
-                        </div>
-                        {juiceDeepLink && juicePhone && (
-                          <div className="mt-3 flex items-center gap-3 border-t border-amber-100 pt-3">
-                            <Image src={`/api/v1/public/juice-qr?phone=${encodeURIComponent(juicePhone)}&amount=${depositAmount}`} alt="MCB Juice payment QR" width={80} height={80} className="h-20 w-20 rounded-lg" />
-                            <div className="flex-1">
-                              <a href={juiceDeepLink} className="block rounded-xl bg-amber-500 px-3 py-2 text-center text-sm font-bold text-white">Pay via MCB Juice</a>
-                              <p className="mt-1 text-[11px] text-amber-700">Or scan the QR, then enter your reference below.</p>
-                            </div>
+                        <span className="text-zinc-500">Amount</span>
+                        <span className="font-bold text-emerald-600 font-mono">Rs {depositAmount}</span>
+                      </div>
+
+                      {juiceDeepLink && juicePhone && (
+                        <div className="mt-3 flex items-center gap-3 border-t border-amber-100 pt-3">
+                          <Image
+                            src={`/api/v1/public/juice-qr?phone=${encodeURIComponent(juicePhone)}&amount=${depositAmount}`}
+                            alt="MCB Juice payment QR"
+                            width={72}
+                            height={72}
+                            className="h-18 w-18 rounded-lg border border-amber-200"
+                          />
+                          <div className="flex-1">
+                            <a
+                              href={juiceDeepLink}
+                              className="block rounded-xl bg-[#1D1D1F] px-3 py-2 text-center text-xs font-semibold text-white shadow-sm hover:bg-black transition active:scale-95"
+                            >
+                              Pay via MCB Juice
+                            </a>
+                            <p className="mt-1 text-[10px] text-amber-700">Or scan QR then enter Juice reference below</p>
                           </div>
-                        )}
+                        </div>
+                      )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-amber-800 mb-1.5">
+                      <label className="block text-[11px] font-semibold uppercase tracking-wider text-amber-900 mb-1">
                         Juice Transaction Reference
                       </label>
                       <input
@@ -1041,19 +970,17 @@ export default function BookingPage() {
                         value={juiceRef}
                         onChange={(e) => setJuiceRef(e.target.value)}
                         placeholder="e.g. TXN123456789"
-                        className="w-full px-4 py-3.5 rounded-xl border-2 border-amber-300 bg-white text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-amber-500 transition-colors text-base font-mono"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-amber-300 text-sm text-[#1D1D1F] placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#1D1D1F] transition font-mono"
                       />
-                      <p className="text-xs text-amber-700 mt-1">
-                        Found in your MCB Juice receipt / SMS confirmation
-                      </p>
+                      <p className="text-[10px] text-amber-700 mt-1">Found in your MCB Juice receipt / SMS notification</p>
                     </div>
                   </div>
                 )}
               </div>
 
               {submitError && (
-                <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3">
-                  <p className="text-red-600 text-sm font-medium">{submitError}</p>
+                <div className="mt-4 rounded-xl bg-red-50 border border-red-200 px-3.5 py-2.5 text-xs text-red-600 font-medium">
+                  {submitError}
                 </div>
               )}
             </div>
@@ -1061,13 +988,15 @@ export default function BookingPage() {
         </div>
       </div>
 
-      {/* Fixed bottom action bar */}
-      <div className="safe-bottom fixed bottom-0 inset-x-0 z-30 border-t border-zinc-200/70 bg-white/85 px-4 py-4 shadow-[0_-16px_40px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
-          <div className="max-w-2xl mx-auto flex min-h-[56px] gap-3">
+      {/* 4. Frosted Sticky Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] backdrop-blur-xl bg-white/80 border-t border-zinc-200/60 z-30">
+        <div className="max-w-md mx-auto flex items-center gap-2">
           {step > 1 && (
             <button
+              type="button"
               onClick={() => setStep((s) => (s - 1) as Step)}
-              className="flex items-center justify-center h-14 w-14 rounded-2xl border-2 border-zinc-200 text-zinc-600 hover:border-zinc-400 active:scale-95 transition-all shrink-0"
+              className="h-[50px] w-[50px] rounded-xl bg-zinc-100 hover:bg-zinc-200 text-[#1D1D1F] flex items-center justify-center transition-all shrink-0 active:scale-95"
+              aria-label="Back"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -1076,42 +1005,67 @@ export default function BookingPage() {
           )}
 
           {step === 1 && (
-            <button
-              disabled={!selectedService}
-              onClick={() => setStep(2)}
-              className="flex-1 h-14 rounded-2xl bg-zinc-900 text-white font-bold text-base disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition-all shadow-lg shadow-zinc-900/20 hover:bg-black"
-            >
-              {selectedService
-                ? `Continue with ${selectedService.name}`
-                : "Select a service"}
-            </button>
+            selectedService ? (
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="bg-[#1D1D1F] hover:bg-black active:scale-[0.98] text-white text-sm font-semibold py-3.5 px-4 rounded-xl w-full shadow-[0_2px_8px_rgba(0,0,0,0.12)] transition-all flex items-center justify-between"
+              >
+                <span className="truncate">Continue with {selectedService.name}</span>
+                <span className="shrink-0 ml-2 font-mono">Rs {selectedService.price_mur} &rarr;</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="bg-zinc-100 text-zinc-400 cursor-not-allowed text-sm font-medium py-3.5 px-4 rounded-xl w-full transition-all text-center"
+              >
+                Select a service to continue
+              </button>
+            )
           )}
 
           {step === 2 && (
-            <button
-              disabled={!step2CanProceed}
-              onClick={() => setStep(3)}
-              className="flex-1 h-14 rounded-2xl bg-zinc-900 text-white font-bold text-base disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition-all shadow-lg shadow-zinc-900/20 hover:bg-black"
-            >
-              {step2CanProceed
-                ? `Confirm ${formatTimeLocal(selectedSlot!.start)}`
-                : "Select a time slot"}
-            </button>
+            step2CanProceed ? (
+              <button
+                type="button"
+                onClick={() => setStep(3)}
+                className="bg-[#1D1D1F] hover:bg-black active:scale-[0.98] text-white text-sm font-semibold py-3.5 px-4 rounded-xl w-full shadow-[0_2px_8px_rgba(0,0,0,0.12)] transition-all flex items-center justify-between"
+              >
+                <span>Confirm {formatTimeLocal(selectedSlot!.start)}</span>
+                <span className="shrink-0 ml-2">Next &rarr;</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="bg-zinc-100 text-zinc-400 cursor-not-allowed text-sm font-medium py-3.5 px-4 rounded-xl w-full transition-all text-center"
+              >
+                Select a time slot
+              </button>
+            )
           )}
 
           {step === 3 && (
             <button
+              type="button"
               disabled={!step3CanProceed || submitting}
               onClick={handleBook}
-              className="flex-1 h-14 rounded-2xl bg-zinc-900 text-white font-bold text-base disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition-all shadow-lg shadow-zinc-900/20 hover:bg-black flex items-center justify-center gap-2"
+              className={
+                step3CanProceed && !submitting
+                  ? "bg-[#1D1D1F] hover:bg-black active:scale-[0.98] text-white text-sm font-semibold py-3.5 px-4 rounded-xl w-full shadow-[0_2px_8px_rgba(0,0,0,0.12)] transition-all flex items-center justify-center gap-2"
+                  : "bg-zinc-100 text-zinc-400 cursor-not-allowed text-sm font-medium py-3.5 px-4 rounded-xl w-full transition-all text-center"
+              }
             >
               {submitting ? (
                 <>
-                  <div className="h-4 w-4 rounded-full border-2 border-zinc-500 border-t-white animate-spin" />
-                  Booking…
+                  <div className="h-4 w-4 rounded-full border-2 border-zinc-400 border-t-white animate-spin" />
+                  <span>Booking…</span>
                 </>
-              ) : (
+              ) : step3CanProceed ? (
                 "Confirm Booking"
+              ) : (
+                "Complete details to book"
               )}
             </button>
           )}
