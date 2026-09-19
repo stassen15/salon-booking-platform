@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { BookingStatus, PaymentStatus, RefundStatus } from "@/types/database.types";
 import { formatCancellationMessage } from "@/lib/services/whatsapp";
 
@@ -81,6 +81,15 @@ function formatTimeMU(iso: string): string {
   }).format(new Date(iso));
 }
 
+function nowTimeMU(): string {
+  return new Intl.DateTimeFormat("en-MU", {
+    timeZone: "Indian/Mauritius",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date());
+}
+
 function nextDayStr(dateStr: string): string {
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
@@ -97,6 +106,10 @@ function dateRangeMU(dateStr: string): { from: string; to: string } {
 function waDigits(phone: string): string {
   const d = phone.replace(/\D/g, "");
   return d.startsWith("230") ? d : "230" + d;
+}
+
+function isWalkIn(booking: AdminBooking): boolean {
+  return booking.customer_name === "Walk-in";
 }
 
 // ─── Cancellation Modal ───────────────────────────────────────────────────────
@@ -387,7 +400,7 @@ function CancellationModal({
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
               <path d="M12 0C5.373 0 0 5.373 0 12c0 2.098.546 4.14 1.587 5.945L.057 23.35a.99.99 0 001.244 1.206l5.526-1.493A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.9a9.9 9.9 0 01-5.031-1.37l-.36-.214-3.734 1.01 1.018-3.625-.234-.375A9.9 9.9 0 012.1 12C2.1 6.534 6.534 2.1 12 2.1S21.9 6.534 21.9 12 17.466 21.9 12 21.9z"/>
             </svg>
-            Cancel & WhatsApp Client
+            Cancel &amp; WhatsApp Client
           </button>
         </div>
       </div>
@@ -509,12 +522,103 @@ function RefundCompleteModal({
   );
 }
 
+// ─── Walk-in Card ─────────────────────────────────────────────────────────────
+
+function WalkInCard({
+  booking,
+  onMarkCompleted,
+  onRelease,
+}: {
+  booking: AdminBooking;
+  onMarkCompleted: (id: string) => Promise<void>;
+  onRelease: (id: string) => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  async function handleCompleted() {
+    if (busy) return;
+    setBusy(true);
+    await onMarkCompleted(booking.id);
+    setBusy(false);
+  }
+
+  async function handleRelease() {
+    if (busy) return;
+    setBusy(true);
+    await onRelease(booking.id);
+    setBusy(false);
+  }
+
+  return (
+    <div
+      className={
+        "relative rounded-[24px] overflow-hidden border-2 border-dashed border-zinc-300 bg-zinc-50 transition-opacity " +
+        (busy ? "opacity-60 pointer-events-none" : "opacity-100")
+      }
+      style={{
+        backgroundImage:
+          "repeating-linear-gradient(-45deg, transparent, transparent 8px, rgba(0,0,0,0.025) 8px, rgba(0,0,0,0.025) 16px)",
+      }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-zinc-200/60 bg-zinc-100/70 px-4 py-3.5">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="h-8 w-8 rounded-xl bg-zinc-800 flex items-center justify-center shrink-0">
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <div>
+            <p className="font-black text-zinc-900 text-base leading-none">Walk-in</p>
+            <p className="text-xs text-zinc-500 mt-0.5 font-mono">
+              {formatTimeMU(booking.start_time)} – {formatTimeMU(booking.end_time)}
+            </p>
+          </div>
+        </div>
+        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-zinc-800 text-white shrink-0">
+          Blocked
+        </span>
+      </div>
+
+      {/* Body */}
+      <div className="px-4 py-3">
+        <p className="text-xs text-zinc-500 mb-3">
+          Slot reserved for a counter walk-in. Complete when done, or release to free the time.
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={handleCompleted}
+            disabled={busy}
+            className="flex-1 min-h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+            Mark Completed
+          </button>
+          <button
+            onClick={handleRelease}
+            disabled={busy}
+            className="flex-1 min-h-10 rounded-xl bg-white border border-zinc-300 hover:bg-zinc-100 text-zinc-700 text-xs font-semibold transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
+          >
+            <svg className="w-3.5 h-3.5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Release Block
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── BookingCard ──────────────────────────────────────────────────────────────
 
 function BookingCard({
   booking,
   service,
   staffMember,
+  isUpNext,
   onStatusChange,
   onConfirmDeposit,
   onInitiateCancel,
@@ -523,6 +627,7 @@ function BookingCard({
   booking: AdminBooking;
   service: ServiceInfo | undefined;
   staffMember: StaffInfo | undefined;
+  isUpNext: boolean;
   onStatusChange: (id: string, status: BookingStatus) => Promise<void>;
   onConfirmDeposit: (id: string) => Promise<void>;
   onInitiateCancel: (booking: AdminBooking) => void;
@@ -566,6 +671,14 @@ function BookingCard({
         (updating ? "opacity-60 pointer-events-none" : "opacity-100")
       }
     >
+      {/* ── Up Next banner ── */}
+      {isUpNext && (
+        <div className="flex items-center gap-1.5 bg-emerald-600 px-4 py-1.5">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+          <span className="text-[11px] font-bold uppercase tracking-widest text-white">Up Next</span>
+        </div>
+      )}
+
       {/* ── Header bar ── */}
       <div className="flex items-center justify-between border-b border-zinc-100/80 bg-white/60 px-4 py-4">
         <div className="flex items-center gap-2 min-w-0">
@@ -773,14 +886,31 @@ function BookingCard({
   );
 }
 
+// ─── Now Divider ──────────────────────────────────────────────────────────────
+
+function NowDivider({ timeStr }: { timeStr: string }) {
+  return (
+    <div className="flex items-center gap-2 py-1 select-none">
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-emerald-400 to-transparent" />
+      <div className="flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1 shadow-sm shadow-emerald-200">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+        <span className="text-[11px] font-bold uppercase tracking-widest text-white">
+          NOW &bull; {timeStr}
+        </span>
+      </div>
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-emerald-400 to-transparent" />
+    </div>
+  );
+}
+
 // ─── DashboardClient ──────────────────────────────────────────────────────────
 
 const FILTER_TABS = [
-  { key: "all",       label: "All"              },
-  { key: "confirmed", label: "Confirmed"        },
-  { key: "deposit",   label: "Pending Deposit"  },
-  { key: "refunds",   label: "Refunds Due"      },
-  { key: "completed", label: "Completed"        },
+  { key: "all",       label: "All"             },
+  { key: "confirmed", label: "Confirmed"       },
+  { key: "deposit",   label: "Pending Deposit" },
+  { key: "refunds",   label: "Refunds Due"     },
+  { key: "completed", label: "Completed"       },
 ] as const;
 
 type FilterKey = typeof FILTER_TABS[number]["key"];
@@ -819,13 +949,23 @@ export default function DashboardClient({
   const [filter, setFilter] = useState<FilterKey>("all");
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [walkInMessage, setWalkInMessage] = useState<string | null>(null);
+  const [walkInLoading, setWalkInLoading] = useState(false);
+
+  // Live clock (Mauritius time)
+  const [clockTime, setClockTime] = useState<string>(nowTimeMU());
+  const clockRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    setClockTime(nowTimeMU());
+    clockRef.current = setInterval(() => setClockTime(nowTimeMU()), 60_000);
+    return () => { if (clockRef.current) clearInterval(clockRef.current); };
+  }, []);
 
   // Cancellation and Refund modals state
   const [cancellingBooking, setCancellingBooking] = useState<AdminBooking | null>(null);
   const [refundingBooking, setRefundingBooking] = useState<AdminBooking | null>(null);
 
   const tomorrowStr = nextDayStr(todayStr);
+  const isToday = selectedDate === todayStr;
 
   // ── Fetch bookings for any date ───────────────────────────────────────────
   async function fetchBookings(dateStr: string) {
@@ -982,6 +1122,62 @@ export default function DashboardClient({
     }
   }
 
+  // ── Walk-in handlers ───────────────────────────────────────────────────────
+  async function blockWalkIn() {
+    if (walkInLoading) return;
+    setWalkInLoading(true);
+    try {
+      const res = await fetch("/api/v1/admin/walk-in", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ durationMinutes: 30 }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        alert(json.error ?? "Could not block walk-in slot");
+        return;
+      }
+      // Inject walk-in booking directly into state
+      const newBooking = json.booking as AdminBooking;
+      setBookings((bs) => [...bs, newBooking].sort((a, b) =>
+        new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+      ));
+    } finally {
+      setWalkInLoading(false);
+    }
+  }
+
+  async function handleWalkInCompleted(id: string) {
+    const snapshot = bookings;
+    setBookings((bs) => bs.map((b) => b.id === id ? { ...b, status: "completed" as BookingStatus } : b));
+    try {
+      const res = await fetch("/api/v1/admin/bookings/" + id, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "completed" }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) throw new Error(json.error ?? "Update failed");
+    } catch {
+      setBookings(snapshot);
+    }
+  }
+
+  async function handleWalkInRelease(id: string) {
+    // Optimistically remove from list immediately
+    setBookings((bs) => bs.filter((b) => b.id !== id));
+    try {
+      await fetch("/api/v1/admin/bookings/" + id, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled" }),
+      });
+    } catch {
+      // Silently re-fetch on failure
+      fetchBookings(selectedDate);
+    }
+  }
+
   // ── Derived: filter + metrics ─────────────────────────────────────────────
   const filtered = bookings.filter((b) => {
     if (filter === "confirmed") return b.status === "confirmed";
@@ -999,17 +1195,24 @@ export default function DashboardClient({
   const pendingDeposits = bookings.filter((b) => b.payment_status === "deposit_submitted").length;
   const pendingRefunds = bookings.filter((b) => b.refund_status === "pending").length;
 
-  async function blockWalkIn() {
-    setWalkInMessage(null);
-    const response = await fetch("/api/v1/admin/walk-in", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ durationMinutes: 30 }),
-    });
-    const json = await response.json();
-    setWalkInMessage(response.ok ? "Next 30 minutes blocked for a walk-in." : (json.error ?? "Could not block slot"));
-    if (response.ok) fetchBookings(selectedDate);
-  }
+  // ── "Up Next" and NOW divider logic ───────────────────────────────────────
+  const nowMs = Date.now();
+  const upNextId: string | null = (() => {
+    if (!isToday) return null;
+    const candidate = filtered.find(
+      (b) =>
+        !isWalkIn(b) &&
+        (b.status === "pending" || b.status === "confirmed") &&
+        new Date(b.start_time).getTime() >= nowMs
+    );
+    return candidate?.id ?? null;
+  })();
+
+  // Compute where NOW divider should be injected (index of first future booking)
+  const nowDividerIndex: number = (() => {
+    if (!isToday) return -1;
+    return filtered.findIndex((b) => new Date(b.start_time).getTime() >= nowMs);
+  })();
 
   if (!hydrated) {
     return (
@@ -1033,11 +1236,22 @@ export default function DashboardClient({
             Bookings
           </h1>
         </div>
-        <div className="rounded-2xl bg-white/70 px-3 py-2 text-right text-xs text-zinc-500 shadow-sm">
-          <span className="block font-semibold text-zinc-950">
-            {selectedDate === todayStr ? "Today" : selectedDate}
-          </span>
-          <span>{bookings.length} appointments</span>
+        <div className="flex items-center gap-2">
+          {/* Live clock */}
+          <div className="rounded-2xl bg-zinc-900 px-4 py-2 text-center shadow-md">
+            <span className="block font-black text-xl text-white tracking-tight tabular-nums">
+              {clockTime}
+            </span>
+            <span className="block text-[10px] font-medium text-zinc-400 uppercase tracking-widest mt-0.5">
+              Mauritius
+            </span>
+          </div>
+          <div className="rounded-2xl bg-white/70 px-3 py-2 text-right text-xs text-zinc-500 shadow-sm">
+            <span className="block font-semibold text-zinc-950">
+              {selectedDate === todayStr ? "Today" : selectedDate}
+            </span>
+            <span>{bookings.length} appointments</span>
+          </div>
         </div>
       </div>
 
@@ -1130,12 +1344,26 @@ export default function DashboardClient({
       <div className="flex flex-col gap-3 rounded-[24px] border border-zinc-200/80 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
         <button
           onClick={blockWalkIn}
-          className="min-h-12 rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-zinc-900/15 transition hover:bg-black active:scale-95"
+          disabled={walkInLoading}
+          className="min-h-12 rounded-2xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-zinc-900/15 transition hover:bg-black active:scale-95 disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
         >
-          Block 30m / Walk-in
+          {walkInLoading ? (
+            <>
+              <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              Blocking…
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Block 30m / Walk-in
+            </>
+          )}
         </button>
-        <p className="text-xs text-zinc-500">Keep the next slot clear for someone at the counter.</p>
-        {walkInMessage && <p className="text-xs font-semibold text-zinc-900 sm:ml-auto">{walkInMessage}</p>}
+        <p className="text-xs text-zinc-500">
+          Instantly reserves the next free 30-minute window for someone at the counter.
+        </p>
       </div>
 
       {/* ── Date switcher ── */}
@@ -1226,18 +1454,43 @@ export default function DashboardClient({
         </div>
       ) : (
         <div className="space-y-3 pb-8">
-          {filtered.map((booking) => (
-            <BookingCard
-              key={booking.id}
-              booking={booking}
-              service={serviceMap[booking.service_id]}
-              staffMember={staffMap[booking.staff_id]}
-              onStatusChange={handleStatusChange}
-              onConfirmDeposit={handleConfirmDeposit}
-              onInitiateCancel={(b) => setCancellingBooking(b)}
-              onInitiateRefundComplete={(b) => setRefundingBooking(b)}
-            />
-          ))}
+          {filtered.map((booking, idx) => {
+            // Inject NOW divider before the first future booking (today only)
+            const showNowDivider = isToday && idx === nowDividerIndex && nowDividerIndex >= 0;
+
+            if (isWalkIn(booking) && booking.status === "confirmed") {
+              return (
+                <div key={booking.id}>
+                  {showNowDivider && <NowDivider timeStr={clockTime} />}
+                  <WalkInCard
+                    booking={booking}
+                    onMarkCompleted={handleWalkInCompleted}
+                    onRelease={handleWalkInRelease}
+                  />
+                </div>
+              );
+            }
+
+            return (
+              <div key={booking.id}>
+                {showNowDivider && <NowDivider timeStr={clockTime} />}
+                <BookingCard
+                  booking={booking}
+                  service={serviceMap[booking.service_id]}
+                  staffMember={staffMap[booking.staff_id]}
+                  isUpNext={booking.id === upNextId}
+                  onStatusChange={handleStatusChange}
+                  onConfirmDeposit={handleConfirmDeposit}
+                  onInitiateCancel={(b) => setCancellingBooking(b)}
+                  onInitiateRefundComplete={(b) => setRefundingBooking(b)}
+                />
+              </div>
+            );
+          })}
+          {/* NOW divider at the very end if all bookings are in the past */}
+          {isToday && nowDividerIndex === -1 && filtered.length > 0 && (
+            <NowDivider timeStr={clockTime} />
+          )}
         </div>
       )}
 
