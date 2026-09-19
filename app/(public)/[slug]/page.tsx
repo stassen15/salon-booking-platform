@@ -206,39 +206,38 @@ function DetailRow({
 function BoutiqueSalonHeader({
   name,
   address,
-  district,
+  monogram: propMonogram,
 }: {
   name: string;
   address: string;
-  district: string;
+  monogram?: string;
 }) {
   const monogram =
+    propMonogram ||
     name
       .split(" ")
       .map((w) => w[0])
       .filter(Boolean)
       .slice(0, 2)
       .join("")
-      .toUpperCase() || "S";
-
-  const locationText = [address, district].filter(Boolean).join(", ") || "Mauritius";
+      .toUpperCase() ||
+    "S";
 
   return (
     <div className="flex flex-col items-center text-center mb-6">
-      <div className="h-14 w-14 rounded-full bg-[#1D1D1F] text-white flex items-center justify-center font-bold text-lg shadow-sm">
+      <div className="w-14 h-14 rounded-full bg-[#1D1D1F] text-white flex items-center justify-center font-bold text-lg shadow-sm">
         {monogram}
       </div>
-      <h1 className="text-xl font-bold tracking-tight text-[#1D1D1F] mt-2">
+      <h1 className="text-xl font-bold tracking-tight text-[#1D1D1F] mt-3">
         {name}
       </h1>
-      <div className="flex items-center justify-center gap-2 text-xs text-[#86868B] mt-1">
-        <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          Open for bookings
-        </span>
-        <span>·</span>
-        <span>{locationText}</span>
+      <div className="inline-flex items-center gap-1.5 text-xs text-emerald-600 font-medium mt-1">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        Open for bookings
       </div>
+      <p className="text-xs text-zinc-400 mt-1 max-w-xs px-4">
+        {address}
+      </p>
     </div>
   );
 }
@@ -483,7 +482,7 @@ function TimeSlotGrid({
           onClick={onJumpToNextAvailable}
           className="mt-2 text-xs font-semibold text-[#1D1D1F] underline underline-offset-4"
         >
-          Jump to next open date &rarr;
+          Jump to next available date &rarr;
         </button>
       </div>
     );
@@ -782,6 +781,15 @@ export default function BookingPage() {
   }
 
   const { salon, services } = catalog;
+  const fullAddress = [salon.address, salon.district].filter(Boolean).join(", ") || salon.address || "Mauritius";
+  const monogram =
+    salon.name
+      .split(" ")
+      .map((w) => w[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "S";
 
   // ── Step 4: Confirmation ──
   if (step === 4 && booking) {
@@ -796,8 +804,8 @@ export default function BookingPage() {
         <div className="max-w-md mx-auto">
           <BoutiqueSalonHeader
             name={salon.name}
-            address={salon.address}
-            district={salon.district}
+            address={fullAddress}
+            monogram={monogram}
           />
           <div className="bg-white rounded-3xl border border-black/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.04)] p-6 text-center">
             <div className="h-16 w-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4">
@@ -858,33 +866,16 @@ export default function BookingPage() {
   }
 
   // ── Steps 1–3: Responsive Boutique Link-in-Bio Funnel ──
-  const monogram =
-    salon.name
-      .split(" ")
-      .map((w) => w[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "S";
-
   return (
     <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F]">
       <div className="max-w-md md:max-w-5xl mx-auto px-4 md:px-8 pt-6 md:py-12 md:grid md:grid-cols-12 md:gap-8 items-start pb-32">
         {/* Mobile Header (Hidden on Desktop) */}
-        <div className="flex flex-col items-center text-center mb-6 md:hidden">
-          <div className="h-14 w-14 rounded-full bg-[#1D1D1F] text-white flex items-center justify-center font-bold text-lg shadow-sm">
-            {monogram}
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-[#1D1D1F] mt-2">
-            {salon.name}
-          </h1>
-          <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-600 font-medium mt-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Open for bookings
-          </div>
-          <p className="text-xs text-zinc-400 text-center mt-1">
-            {salon.address}{salon.district ? `, ${salon.district}` : ""}
-          </p>
+        <div className="md:hidden">
+          <BoutiqueSalonHeader
+            name={salon.name}
+            address={fullAddress}
+            monogram={monogram}
+          />
         </div>
 
         {/* Desktop Left Column (Persistent Profile & Appointment Summary) */}
@@ -892,18 +883,18 @@ export default function BookingPage() {
           <div className="bg-white rounded-3xl border border-zinc-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)] p-6 space-y-6">
             {/* Salon Profile */}
             <div className="flex flex-col items-start text-left">
-              <div className="h-14 w-14 rounded-full bg-[#1D1D1F] text-white flex items-center justify-center font-bold text-lg shadow-sm">
+              <div className="w-14 h-14 rounded-full bg-[#1D1D1F] text-white flex items-center justify-center font-bold text-lg shadow-sm">
                 {monogram}
               </div>
               <h1 className="text-xl font-bold tracking-tight text-[#1D1D1F] mt-3">
                 {salon.name}
               </h1>
-              <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium mt-1.5">
+              <div className="inline-flex items-center gap-1.5 text-xs text-emerald-600 font-medium mt-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Open for bookings
               </div>
               <p className="text-xs text-zinc-400 mt-1">
-                {salon.address}{salon.district ? `, ${salon.district}` : ""}
+                {fullAddress}
               </p>
             </div>
 
@@ -1240,7 +1231,7 @@ export default function BookingPage() {
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="bg-[#1D1D1F] hover:bg-black active:scale-[0.98] text-white text-sm font-semibold py-3.5 px-4 rounded-xl w-full shadow-[0_2px_8px_rgba(0,0,0,0.12)] transition-all flex items-center justify-between"
+                className="w-full h-12 rounded-xl font-medium text-sm transition-all inline-flex items-center justify-between px-4 bg-[#1D1D1F] hover:bg-black active:scale-[0.98] text-white shadow-sm"
               >
                 <span className="truncate">Continue with {selectedService.name}</span>
                 <span className="shrink-0 ml-2 font-mono">Rs {selectedService.price_mur} &rarr;</span>
@@ -1249,7 +1240,7 @@ export default function BookingPage() {
               <button
                 type="button"
                 disabled
-                className="bg-zinc-100 text-zinc-400 cursor-not-allowed text-sm font-medium py-3.5 px-4 rounded-xl w-full transition-all text-center"
+                className="w-full h-12 rounded-xl font-medium text-sm transition-all inline-flex items-center justify-center px-4 bg-zinc-100 text-zinc-400 cursor-not-allowed"
               >
                 Select a service to continue
               </button>
@@ -1261,7 +1252,7 @@ export default function BookingPage() {
               <button
                 type="button"
                 onClick={() => setStep(3)}
-                className="bg-[#1D1D1F] hover:bg-black active:scale-[0.98] text-white text-sm font-semibold py-3.5 px-4 rounded-xl w-full shadow-[0_2px_8px_rgba(0,0,0,0.12)] transition-all flex items-center justify-between"
+                className="w-full h-12 rounded-xl font-medium text-sm transition-all inline-flex items-center justify-between px-4 bg-[#1D1D1F] hover:bg-black active:scale-[0.98] text-white shadow-sm"
               >
                 <span>Confirm {formatTimeLocal(selectedSlot!.start)}</span>
                 <span className="shrink-0 ml-2">Next &rarr;</span>
@@ -1270,7 +1261,7 @@ export default function BookingPage() {
               <button
                 type="button"
                 disabled
-                className="bg-zinc-100 text-zinc-400 cursor-not-allowed text-sm font-medium py-3.5 px-4 rounded-xl w-full transition-all text-center"
+                className="w-full h-12 rounded-xl font-medium text-sm transition-all inline-flex items-center justify-center px-4 bg-zinc-100 text-zinc-400 cursor-not-allowed"
               >
                 Select a time slot
               </button>
@@ -1282,21 +1273,34 @@ export default function BookingPage() {
               type="button"
               disabled={!step3CanProceed || submitting}
               onClick={handleBook}
-              className={
-                step3CanProceed && !submitting
-                  ? "bg-[#1D1D1F] hover:bg-black active:scale-[0.98] text-white text-sm font-semibold py-3.5 px-4 rounded-xl w-full shadow-[0_2px_8px_rgba(0,0,0,0.12)] transition-all flex items-center justify-center gap-2"
-                  : "bg-zinc-100 text-zinc-400 cursor-not-allowed text-sm font-medium py-3.5 px-4 rounded-xl w-full transition-all text-center"
-              }
+              className="w-full h-12 rounded-xl font-medium text-sm transition-all inline-flex items-center justify-center gap-2.5 bg-[#1D1D1F] text-white active:scale-[0.98] disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed shadow-sm"
             >
               {submitting ? (
                 <>
-                  <div className="h-4 w-4 rounded-full border-2 border-zinc-400 border-t-white animate-spin" />
-                  <span>Booking…</span>
+                  <svg
+                    className="animate-spin h-4 w-4 text-zinc-400"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  <span className="text-zinc-600 font-medium">Securing appointment...</span>
                 </>
-              ) : step3CanProceed ? (
-                "Confirm Booking"
               ) : (
-                "Complete details to book"
+                <span>Complete Booking</span>
               )}
             </button>
           )}
