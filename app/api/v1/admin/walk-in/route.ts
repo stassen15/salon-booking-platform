@@ -16,12 +16,10 @@ export async function POST(request: Request) {
   const salonId = resolveOwnedSalonId(auth.context, body.salonId);
   if (!salonId) return jsonError("Salon not found", 404);
 
-  // Use regular client for SELECT (respects RLS on reads)
   const supabase = await createClient();
-  // Use admin client for INSERT to bypass RLS (owner-initiated walk-in)
   const adminSupabase = createAdminClient();
 
-  // Resolve staffId (use first active staff if not specified)
+  // Resolve staffId
   let staffId = body.staffId;
   if (!staffId) {
     const { data: staff } = await supabase
@@ -36,7 +34,7 @@ export async function POST(request: Request) {
   }
   if (!staffId) return jsonError("No active staff member found", 400);
 
-  // Resolve first active service for the walk-in
+  // Resolve first active service
   const { data: service } = await supabase
     .from("services")
     .select("id, duration_minutes")
@@ -47,10 +45,51 @@ export async function POST(request: Request) {
     .maybeSingle();
   if (!service) return jsonError("No active service found", 400);
 
-  // Snap start to next 15-minute boundary
   const duration = Math.min(Math.max(body.durationMinutes ?? 30, 15), 240);
-  const start = new Date(Math.ceil(Date.now() / (15 * 60_000)) * (15 * 60_000));
-  const end = addMinutes(start, duration);
+
+  // Fetch today's bookings for this staff to check conflicts
+  const windowStart = new Date();
+  windowStart.setUTCHours(0, 0, 0, 0);
+  const windowEnd = addMinutes(windowStart, 24 * 60);
+
+  const { data: existingBookings } = await supabase
+    .from("bookings")
+    .select("start_time, end_time, status")
+    .eq("salon_id", salonId)
+    .eq("staff_id", staffId)
+    .not("status", "in", '("cancelled","no_show")')
+    .gte("start_time", windowStart.toISOString())
+    .lte("start_time", windowEnd.toISOString());
+
+  const occupied = (existingBookings ?? []).map((b) => ({
+    start: new Date(b.start_time).getTime(),
+    end: new Date(b.end_time).getTime(),
+  }));
+
+  // Find next free 15-minute-aligned slot starting from now
+  let candidateStart = new Date(
+    Math.ceil(Date.now() / (15 * 60_000)) * (15 * 60_000)
+  );
+  let candidateEnd = addMinutes(candidateStart, duration);
+  const searchLimit = addMinutes(new Date(), 4 * 60); // search up to 4h ahead
+
+  let found = false;
+  while (candidateStart <= searchLimit) {
+    const cs = candidateStart.getTime();
+    const ce = candidateEnd.getTime();
+    const conflicts = occupied.some((o) => cs < o.end && ce > o.start);
+    if (!conflicts) {
+      found = true;
+      break;
+    }
+    // Advance by 15 minutes and try again
+    candidateStart = addMinutes(candidateStart, 15);
+    candidateEnd = addMinutes(candidateStart, duration);
+  }
+
+  if (!found) {
+    return jsonError("No free slot available in the next 4 hours", 409);
+  }
 
   const { data, error } = await adminSupabase
     .from("bookings")
@@ -60,8 +99,8 @@ export async function POST(request: Request) {
       service_id: service.id,
       customer_name: "Walk-in",
       customer_phone: "00000000",
-      start_time: start.toISOString(),
-      end_time: end.toISOString(),
+      start_time: candidateStart.toISOString(),
+      end_time: candidateEnd.toISOString(),
       status: "confirmed",
       payment_status: "unpaid",
     })
