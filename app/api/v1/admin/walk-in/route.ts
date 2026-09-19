@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     .select("start_time, end_time, status")
     .eq("salon_id", salonId)
     .eq("staff_id", staffId)
-    .not("status", "in", '("cancelled","no_show")')
+    .not("status", "in", '("cancelled","no_show","completed")')
     .gte("start_time", windowStart.toISOString())
     .lte("start_time", windowEnd.toISOString());
 
