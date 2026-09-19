@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f5f5f7;
+  --foreground: #1d1d1f;
+  --surface: rgba(255, 255, 255, 0.82);
+  --line: rgba(60, 60, 67, 0.16);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, monospace;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  background: var(--background);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "kern" 1;
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  touch-action: manipulation;
+}
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+
+  .safe-top {
+    padding-top: calc(0.75rem + env(safe-area-inset-top));
+  }
+}
+
+/* Keep the mobile shell deterministic even when an embedded browser reports a wide layout viewport. */
+@media (max-width: 639px) {
+  .admin-desktop-nav {
+    display: none !important;
+  }
+
+  .admin-mobile-tabs {
+    display: grid !important;
+    position: fixed !important;
+    top: auto !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    z-index: 50 !important;
+  }
+}
+
+@media (pointer: coarse) and (max-width: 1024px) {
+  .admin-desktop-nav {
+    display: none !important;
+  }
+
+  .admin-mobile-tabs {
+    display: grid !important;
+    position: fixed !important;
+    top: auto !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    z-index: 50 !important;
+  }
+}
+
+::selection {
+  background: rgba(99, 102, 241, 0.2);
+}
+
+@keyframes premium-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.premium-rise {
+  animation: premium-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.premium-surface {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+  backdrop-filter: blur(24px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
