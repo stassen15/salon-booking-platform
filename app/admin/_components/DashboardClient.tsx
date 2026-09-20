@@ -293,18 +293,18 @@ function CancellationModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-lg rounded-2xl bg-white border border-black/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.18)] overflow-hidden my-6">
+      <div className="w-full max-w-md md:max-w-3xl mx-auto rounded-2xl bg-white border border-black/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.18)] overflow-hidden my-auto">
         {/* Modal Header */}
-        <div className="bg-[#F5F5F7] border-b border-black/[0.06] px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="bg-[#F5F5F7] border-b border-black/[0.06] px-5 md:px-6 py-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <div>
+            <div className="min-w-0">
               <h3 className="font-semibold text-[#1D1D1F] text-base">Cancel Appointment</h3>
-              <p className="text-xs text-zinc-500 mt-0.5">
+              <p className="text-xs text-zinc-500 mt-0.5 truncate">
                 {booking.customer_name} · {formatTimeMU(booking.start_time)} · {service?.name ?? "Service"} ({staffMember?.name || "Stylist"})
               </p>
             </div>
@@ -312,7 +312,7 @@ function CancellationModal({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="hover:bg-zinc-100 rounded-full p-2 transition-colors text-zinc-400 hover:text-zinc-700"
+            className="hover:bg-zinc-200/60 rounded-full p-2 transition-colors text-zinc-400 hover:text-zinc-700 shrink-0 ml-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -320,188 +320,170 @@ function CancellationModal({
           </button>
         </div>
 
-        {/* Modal Body (smooth hidden scrollbar) */}
-        <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {/* Reason for Cancellation (Compact 2-Column Grid) */}
-          <div>
-            <label className="block text-[11px] font-bold tracking-wider uppercase text-zinc-400 mb-2">
-              Reason for cancellation
-            </label>
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              {QUICK_REASONS.map((r) => {
-                const isSelected = selectedChip === r && customReason.trim() !== "";
-                return (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => {
-                      setSelectedChip(r);
-                      setCustomReason(r);
-                    }}
-                    className={`py-2 px-3 text-xs rounded-xl font-medium text-left transition-all border ${
-                      isSelected
-                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
-                        : "bg-zinc-50 hover:bg-zinc-100 text-zinc-700 border-zinc-200/70"
-                    }`}
-                  >
-                    {r}
-                  </button>
-                );
-              })}
-            </div>
-            <textarea
-              rows={2}
-              value={customReason}
-              onChange={(e) => {
-                const val = e.target.value;
-                setCustomReason(val);
-                if (!val.trim()) {
-                  setSelectedChip("");
-                } else if ((QUICK_REASONS as readonly string[]).includes(val)) {
-                  setSelectedChip(val);
-                }
-              }}
-              placeholder="Add specific details or custom note for the client..."
-              className="w-full bg-white border border-zinc-200/90 focus:border-[#1D1D1F] focus:ring-2 focus:ring-black/5 rounded-xl p-3 text-xs text-zinc-900 placeholder:text-zinc-400 outline-none transition-all resize-none shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
-            />
-          </div>
-
-          {/* MCB Juice Deposit Section */}
-          {depositPaid ? (
-            <div className="rounded-2xl bg-[#F5F5F7] border border-black/[0.06] p-4 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#FF9500]">
-                    MCB Juice Deposit Refund
-                  </span>
-                  <p className="text-sm font-semibold text-[#1D1D1F] mt-0.5">
-                    Rs {depositAmount} to be refunded
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={copyPhone}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-black/[0.08] text-xs font-medium text-[#1D1D1F] shadow-sm hover:bg-[#F5F5F7] transition active:scale-95"
-                >
-                  {copiedPhone ? "Copied!" : "Copy Juice No."}
-                </button>
+        {/* Modal Body */}
+        <div className="p-5 md:p-6 overflow-y-auto max-h-[calc(100vh-6rem)] md:max-h-[500px] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="md:grid md:grid-cols-12 md:gap-8 md:items-start">
+            {/* Left Column — Controls & Input (md:col-span-6) */}
+            <div className="md:col-span-6 flex flex-col">
+              <h3 className="text-base font-bold tracking-tight text-[#1D1D1F]">
+                Reason for cancellation
+              </h3>
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                {QUICK_REASONS.map((r) => {
+                  const isSelected = selectedChip === r && customReason.trim() !== "";
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => {
+                        setSelectedChip(r);
+                        setCustomReason(r);
+                      }}
+                      className={`py-2 px-3 text-xs rounded-xl font-medium text-left transition-all border ${
+                        isSelected
+                          ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
+                          : "bg-zinc-50 hover:bg-zinc-100 text-zinc-700 border-zinc-200/70"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  );
+                })}
               </div>
-              <div className="space-y-2 pt-1">
-                {(["refunded_now", "pending", "not_required"] as const).map((choice) => (
-                  <label
-                    key={choice}
-                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-black/[0.06] cursor-pointer hover:bg-black/[0.02] transition"
-                  >
-                    <input
-                      type="radio"
-                      name="refundChoice"
-                      checked={refundChoice === choice}
-                      onChange={() => setRefundChoice(choice)}
-                      className="h-4 w-4 text-[#1D1D1F] focus:ring-[#1D1D1F]"
-                    />
-                    <div className="flex-1 min-w-0">
-                      {choice === "refunded_now" && (
-                        <>
-                          <span className="text-xs font-semibold text-[#1D1D1F] block">I refunded via Juice now</span>
-                          <span className="text-[11px] text-[#86868B]">Already transferred Rs {depositAmount} back</span>
-                        </>
-                      )}
-                      {choice === "pending" && (
-                        <>
-                          <span className="text-xs font-semibold text-[#1D1D1F] block">Refund is Pending</span>
-                          <span className="text-[11px] text-[#86868B]">Mark as pending refund in dashboard</span>
-                        </>
-                      )}
-                      {choice === "not_required" && (
-                        <span className="text-xs font-medium text-[#1D1D1F] block">No refund required / Deposit waived</span>
-                      )}
+              <textarea
+                rows={2}
+                value={customReason}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCustomReason(val);
+                  if (!val.trim()) {
+                    setSelectedChip("");
+                  } else if ((QUICK_REASONS as readonly string[]).includes(val)) {
+                    setSelectedChip(val);
+                  }
+                }}
+                placeholder="Add specific details or custom note for the client..."
+                className="mt-3 w-full bg-zinc-50 border border-zinc-200/80 rounded-xl p-3 text-xs focus:bg-white focus:border-[#1D1D1F] focus:ring-2 focus:ring-black/5 outline-none transition-all resize-none shadow-[0_1px_2px_rgba(0,0,0,0.02)] text-zinc-900 placeholder:text-zinc-400"
+              />
+            </div>
+
+            {/* Right Column — Live Preview & Action Buttons (md:col-span-6 flex flex-col justify-between h-full) */}
+            <div className="md:col-span-6 flex flex-col justify-between h-full mt-5 md:mt-0">
+              <div>
+                {/* Deposit Status Pill */}
+                {depositPaid ? (
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 border border-zinc-200/70 mb-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                      <span className="text-xs font-semibold text-zinc-800 truncate">Juice: Rs {depositAmount}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium shrink-0">
+                        {effectiveRefundStatus === "refunded" ? "Refunded" : "Pending refund"}
+                      </span>
                     </div>
-                  </label>
-                ))}
-                {refundChoice === "refunded_now" && (
-                  <div className="pl-6 pt-1">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={copyPhone}
+                        className="px-2.5 py-1 text-[11px] font-medium bg-white rounded-lg border border-black/[0.08] hover:bg-zinc-100 active:scale-95 transition shadow-xs"
+                      >
+                        {copiedPhone ? "Copied!" : "Copy No."}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRefundChoice(refundChoice === "refunded_now" ? "pending" : "refunded_now")}
+                        className="text-[11px] text-zinc-500 hover:text-zinc-800 transition underline font-medium"
+                      >
+                        {refundChoice === "refunded_now" ? "Set Pending" : "Set Refunded"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200/60 text-[11px] text-zinc-500 font-medium mb-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                    No deposit required
+                  </div>
+                )}
+
+                {depositPaid && refundChoice === "refunded_now" && (
+                  <div className="mb-3">
                     <input
                       type="text"
                       value={refundRef}
                       onChange={(e) => setRefundRef(e.target.value)}
-                      placeholder="Juice Ref (e.g. REF-88491)"
-                      className="w-full px-3.5 py-2 rounded-xl text-xs bg-white border border-black/[0.12] text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#1D1D1F] transition"
+                      placeholder="Juice Ref (optional, e.g. REF-88491)"
+                      className="w-full px-3 py-1.5 rounded-lg text-xs bg-zinc-50 border border-zinc-200/80 text-zinc-900 placeholder:text-zinc-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1D1D1F]"
                     />
                   </div>
                 )}
+
+                {/* WhatsApp Live Bubble */}
+                <div className="rounded-2xl bg-[#EFEAE2]/60 border border-[#D1D7DB] p-3 relative">
+                  <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-black/[0.06]">
+                    <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      WhatsApp Notification Preview
+                    </span>
+                    <span className="text-[10px] text-zinc-400 font-mono">Template: utility_cancel</span>
+                  </div>
+                  <div className="bg-white rounded-xl rounded-tl-none p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-xs text-zinc-800 leading-relaxed space-y-1.5 border border-black/[0.04]">
+                    <p>Bonjour <span className="font-semibold">{booking.customer_name}</span>,</p>
+                    <p>Nous regrettons de vous informer que votre rendez-vous chez <span className="font-semibold">{salonName}</span> prévu le <span className="font-semibold">{new Date(booking.start_time).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}, {formatTimeMU(booking.start_time)}</span> a dû être annulé.</p>
+                    <p className="text-zinc-600 bg-zinc-50 p-2 rounded-lg border border-zinc-100">
+                      <strong>Motif :</strong> {effectiveReason}
+                    </p>
+                    {depositPaid && effectiveRefundStatus === "refunded" && (
+                      <p className="text-emerald-700 bg-emerald-50/70 p-1.5 rounded-lg border border-emerald-100 text-[11px]">
+                        ✓ Acompte de Rs {depositAmount} remboursé via MCB Juice {refundRef ? `(Réf : ${refundRef})` : ""}.
+                      </p>
+                    )}
+                    {depositPaid && effectiveRefundStatus === "pending" && (
+                      <p className="text-amber-700 bg-amber-50/70 p-1.5 rounded-lg border border-amber-100 text-[11px]">
+                        ⏳ Remboursement de votre acompte de Rs {depositAmount} en cours de traitement via Juice.
+                      </p>
+                    )}
+                    <p className="text-[11px] text-zinc-500">L&apos;équipe {salonName}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Button Stack (anchored at bottom) */}
+              <div className="space-y-1.5 pt-3">
+                {/* Primary CTA */}
+                <button
+                  type="button"
+                  onClick={() => handleSubmit(true)}
+                  disabled={submitting}
+                  className="w-full bg-[#1D1D1F] hover:bg-black text-white text-xs font-semibold py-3 rounded-xl shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <svg className="w-4 h-4 text-[#34C759]" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.098.546 4.14 1.587 5.945L.057 23.35a.99.99 0 001.244 1.206l5.526-1.493A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.9a9.9 9.9 0 01-5.031-1.37l-.36-.214-3.734 1.01 1.018-3.625-.234-.375A9.9 9.9 0 012.1 12C2.1 6.534 6.534 2.1 12 2.1S21.9 6.534 21.9 12 17.466 21.9 12 21.9z" />
+                  </svg>
+                  Cancel &amp; Send WhatsApp
+                </button>
+
+                {/* Secondary Action */}
+                <button
+                  type="button"
+                  onClick={() => handleSubmit(false)}
+                  disabled={submitting}
+                  className="w-full text-center text-xs text-zinc-500 hover:text-rose-600 font-medium py-1.5 transition-colors disabled:opacity-50"
+                >
+                  Cancel without notifying client
+                </button>
+
+                {/* Dismiss */}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={submitting}
+                  className="w-full text-center text-xs text-zinc-400 hover:text-zinc-700 py-1 transition-colors"
+                >
+                  Keep Appointment
+                </button>
               </div>
             </div>
-          ) : (
-            <div className="rounded-xl bg-[#F5F5F7] border border-black/[0.04] p-3 text-xs text-[#86868B]">
-              No deposit was recorded for this appointment.
-            </div>
-          )}
-
-          {/* WhatsApp Preview as an Authentic Chat Bubble (Kill the Black Terminal Box) */}
-          <div className="rounded-2xl bg-[#EFEAE2]/60 border border-[#D1D7DB] p-3.5 my-3 relative">
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-black/[0.06]">
-              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                WhatsApp Notification Preview
-              </span>
-              <span className="text-[10px] text-zinc-400 font-mono">Template: utility_cancel</span>
-            </div>
-            <div className="bg-white rounded-xl rounded-tl-none p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-xs text-zinc-800 leading-relaxed space-y-2 border border-black/[0.04]">
-              <p>Bonjour <span className="font-semibold">{booking.customer_name}</span>,</p>
-              <p>Nous regrettons de vous informer que votre rendez-vous chez <span className="font-semibold">{salonName}</span> prévu le <span className="font-semibold">{new Date(booking.start_time).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}, {formatTimeMU(booking.start_time)}</span> a dû être annulé.</p>
-              <p className="text-zinc-600 bg-zinc-50 p-2 rounded-lg border border-zinc-100">
-                <strong>Motif :</strong> {effectiveReason}
-              </p>
-              {depositPaid && effectiveRefundStatus === "refunded" && (
-                <p className="text-emerald-700 bg-emerald-50/70 p-2 rounded-lg border border-emerald-100 text-[11px]">
-                  ✓ Acompte de Rs {depositAmount} remboursé via MCB Juice {refundRef ? `(Réf : ${refundRef})` : ""}.
-                </p>
-              )}
-              {depositPaid && effectiveRefundStatus === "pending" && (
-                <p className="text-amber-700 bg-amber-50/70 p-2 rounded-lg border border-amber-100 text-[11px]">
-                  ⏳ Remboursement de votre acompte de Rs {depositAmount} en cours de traitement via Juice.
-                </p>
-              )}
-              <p className="text-[11px] text-zinc-500">L&apos;équipe {salonName}</p>
-            </div>
           </div>
-        </div>
-
-        {/* Modal Footer: Clean Action Hierarchy */}
-        <div className="bg-[#F5F5F7]/80 border-t border-black/[0.06] px-6 py-4 flex flex-col items-center gap-2">
-          {/* Primary action (Top): Full-width button Cancel & Send WhatsApp */}
-          <button
-            type="button"
-            onClick={() => handleSubmit(true)}
-            disabled={submitting}
-            className="w-full bg-[#1D1D1F] hover:bg-black text-white font-semibold text-xs py-3 px-4 rounded-xl shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            <svg className="w-4 h-4 text-[#34C759]" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.098.546 4.14 1.587 5.945L.057 23.35a.99.99 0 001.244 1.206l5.526-1.493A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.9a9.9 9.9 0 01-5.031-1.37l-.36-.214-3.734 1.01 1.018-3.625-.234-.375A9.9 9.9 0 012.1 12C2.1 6.534 6.534 2.1 12 2.1S21.9 6.534 21.9 12 17.466 21.9 12 21.9z" />
-            </svg>
-            Cancel &amp; Send WhatsApp
-          </button>
-
-          {/* Secondary action (Middle): Quiet button Cancel without notifying client */}
-          <button
-            type="button"
-            onClick={() => handleSubmit(false)}
-            disabled={submitting}
-            className="text-zinc-500 hover:text-rose-600 text-xs py-1.5 transition-colors disabled:opacity-50"
-          >
-            Cancel without notifying client
-          </button>
-
-          {/* Dismiss action (Bottom): Keep Appointment text link */}
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={submitting}
-            className="text-zinc-400 hover:text-zinc-700 text-xs transition-colors"
-          >
-            Keep Appointment
-          </button>
         </div>
       </div>
     </div>
