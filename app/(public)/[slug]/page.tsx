@@ -800,7 +800,7 @@ export default function BookingPage() {
       `${salon.name}, ${salon.address}`,
     );
     return (
-      <div className="min-h-screen bg-[#F5F5F7] py-8 px-4">
+      <div className="min-h-screen w-full bg-[#F5F5F7] py-8 px-4 touch-pan-y overscroll-y-auto">
         <div className="max-w-md mx-auto">
           <BoutiqueSalonHeader
             name={salon.name}
@@ -867,7 +867,7 @@ export default function BookingPage() {
 
   // ── Steps 1–3: Responsive Boutique Link-in-Bio Funnel ──
   return (
-    <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F]">
+    <div className="min-h-screen w-full bg-[#F5F5F7] text-[#1D1D1F] touch-pan-y overscroll-y-auto">
       <div className="max-w-md md:max-w-5xl mx-auto px-4 md:px-8 pt-6 md:py-12 md:grid md:grid-cols-12 md:gap-8 items-start pb-32">
         {/* Mobile Header (Hidden on Desktop) */}
         <div className="md:hidden">
@@ -1211,7 +1211,7 @@ export default function BookingPage() {
       </div>
 
       {/* 4. Frosted Sticky Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] backdrop-blur-xl bg-white/80 border-t border-zinc-200/60 z-30">
+      <div className="fixed bottom-0 left-0 right-0 p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] backdrop-blur-xl bg-white/80 border-t border-zinc-200/60 z-30 gpu-layer">
         <div className="max-w-md md:max-w-3xl mx-auto flex items-center gap-2">
           {step > 1 && (
             <button

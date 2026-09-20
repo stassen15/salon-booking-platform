@@ -128,7 +128,7 @@ export default function AdminNav({ salonName }: { salonName: string }) {
       </nav>
 
       {/* ── iOS Frosted Bottom Navigation Bar (mobile only: md:hidden) ─────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden backdrop-blur-xl bg-white/85 border-t border-black/[0.06] shadow-[0_-1px_3px_rgba(0,0,0,0.02)] pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 px-6 flex justify-around items-center">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden backdrop-blur-xl bg-white/85 border-t border-black/[0.06] shadow-[0_-1px_3px_rgba(0,0,0,0.02)] gpu-layer pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 px-6 flex justify-around items-center">
         {NAV_ITEMS.map((item) => {
           const active = isActive(item);
           return (
@@ -149,7 +149,7 @@ export default function AdminNav({ salonName }: { salonName: string }) {
             </Link>
           );
         })}
-      </div>
+      </nav>
     </>
   );
 }

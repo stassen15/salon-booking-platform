@@ -31,7 +31,7 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
       <AdminNav salonName={salon.name} />
-      <main className="pb-[calc(env(safe-area-inset-bottom)+5rem)] md:pb-0">{children}</main>
+      <main className="min-h-screen pb-32 touch-pan-y overscroll-y-auto">{children}</main>
     </div>
   );
 }
