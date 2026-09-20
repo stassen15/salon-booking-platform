@@ -1612,13 +1612,35 @@ export default function DashboardClient({
                     month: "short",
                   }).format(new Date(selectedDate + "T12:00:00+04:00")).toUpperCase()}
           </p>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex items-baseline gap-2 mt-0.5">
             <h1 className="text-2xl font-semibold tracking-tight text-[#1D1D1F] md:text-3xl">
               Bookings
             </h1>
-            <span className="text-xs font-semibold text-zinc-400 bg-zinc-100 px-2.5 py-1 rounded-full">
+            <span className="text-zinc-400 text-xs md:hidden font-medium">
               {bookings.length} total
             </span>
+          </div>
+        </div>
+
+        {/* Desktop Dual Widget (Right Side Anchor) */}
+        <div className="hidden md:flex items-center gap-3">
+          {/* Live Clock Card */}
+          <div className="flex items-center gap-2.5 px-4 py-2 bg-white rounded-2xl border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-mono font-bold text-base tracking-tight text-[#1D1D1F]">
+              {clockTime}
+            </span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 border-l border-zinc-200 pl-2">
+              Live
+            </span>
+          </div>
+
+          {/* Total Bookings Card */}
+          <div className="px-4 py-2 bg-white rounded-2xl border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02)] text-center">
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+              {selectedDate === todayStr ? "Today" : "Selected"}
+            </span>
+            <span className="text-xs font-semibold text-[#1D1D1F]">{bookings.length} total</span>
           </div>
         </div>
       </div>

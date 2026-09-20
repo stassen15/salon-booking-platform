@@ -107,7 +107,7 @@ export default function AdminNav({ salonName }: { salonName: string }) {
             </div>
           </div>
 
-          {/* Right: Desktop nav links + Live Clock + Sign Out (Desktop) / Live Clock only (Mobile) */}
+          {/* Right: Desktop nav links + Sign Out (Desktop) / Live Clock only (Mobile) */}
           <div className="flex items-center gap-2.5 shrink-0">
             {/* Desktop nav links */}
             <div className="hidden md:flex items-center gap-1">
@@ -129,17 +129,6 @@ export default function AdminNav({ salonName }: { salonName: string }) {
               </a>
             </div>
 
-            {/* Prominent, Glanceable Live Clock (Desktop AND Mobile) */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-2xl bg-zinc-100/90 border border-zinc-200/60 shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-mono font-bold text-base sm:text-lg tracking-tight text-[#1D1D1F]">
-                {clockTime || "Live"}
-              </span>
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 border-l border-zinc-300 pl-2">
-                Live
-              </span>
-            </div>
-
             {/* Desktop: Sign Out button */}
             <button
               onClick={handleSignOut}
@@ -151,6 +140,12 @@ export default function AdminNav({ salonName }: { salonName: string }) {
               </svg>
               Sign Out
             </button>
+
+            {/* Mobile: Live clock pill (md:hidden) */}
+            <div className="md:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100 text-xs font-medium text-zinc-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#34C759] animate-pulse shrink-0" />
+              {clockTime ? `${clockTime} · Live` : "Live"}
+            </div>
           </div>
         </div>
       </nav>
