@@ -183,8 +183,9 @@ const QUICK_REASONS = [
   "Barber Unwell / Emergency",
   "Salon Closure / Power Outage",
   "Water Cut / Technical Issue",
-  "Schedule Conflict / Rescheduling",
+  "Schedule Conflict / Reschedule",
   "Customer Called to Cancel",
+  "Personal / Other Reason",
 ] as const;
 
 interface CancellationModalProps {
@@ -235,12 +236,14 @@ function CancellationModal({
         ? "pending"
         : "not_required";
 
+  const effectiveReason = customReason.trim() || "Non spécifié";
+
   const messageText = formatCancellationMessage({
     customerName: booking.customer_name,
     salonName,
     serviceName: service?.name,
     startTime: booking.start_time,
-    reason: customReason.trim() || selectedChip,
+    reason: effectiveReason,
     depositAmount: depositPaid ? depositAmount : 0,
     refundStatus: effectiveRefundStatus,
     refundReference: refundChoice === "refunded_now" ? refundRef.trim() : undefined,
@@ -262,7 +265,7 @@ function CancellationModal({
     try {
       await onConfirm({
         bookingId: booking.id,
-        cancellationReason: customReason.trim() || selectedChip,
+        cancellationReason: effectiveReason,
         refundStatus: effectiveRefundStatus,
         refundReference: refundChoice === "refunded_now" ? refundRef.trim() : undefined,
         openWhatsApp,
@@ -325,27 +328,41 @@ function CancellationModal({
               Reason for cancellation
             </label>
             <div className="grid grid-cols-2 gap-2 mb-3">
-              {QUICK_REASONS.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => { setSelectedChip(r); setCustomReason(r); }}
-                  className={`py-2 px-3 text-xs rounded-xl font-medium text-left transition-all border ${
-                    (customReason.trim() === r || selectedChip === r)
-                      ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
-                      : "bg-zinc-50 hover:bg-zinc-100 text-zinc-700 border-zinc-200/70"
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
+              {QUICK_REASONS.map((r) => {
+                const isSelected = selectedChip === r && customReason.trim() !== "";
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => {
+                      setSelectedChip(r);
+                      setCustomReason(r);
+                    }}
+                    className={`py-2 px-3 text-xs rounded-xl font-medium text-left transition-all border ${
+                      isSelected
+                        ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
+                        : "bg-zinc-50 hover:bg-zinc-100 text-zinc-700 border-zinc-200/70"
+                    }`}
+                  >
+                    {r}
+                  </button>
+                );
+              })}
             </div>
             <textarea
               rows={2}
               value={customReason}
-              onChange={(e) => setCustomReason(e.target.value)}
-              placeholder="Explain why you need to cancel..."
-              className="w-full text-xs border border-zinc-200 rounded-xl resize-none p-2.5 bg-zinc-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1D1D1F] transition text-[#1D1D1F]"
+              onChange={(e) => {
+                const val = e.target.value;
+                setCustomReason(val);
+                if (!val.trim()) {
+                  setSelectedChip("");
+                } else if ((QUICK_REASONS as readonly string[]).includes(val)) {
+                  setSelectedChip(val);
+                }
+              }}
+              placeholder="Add specific details or custom note for the client..."
+              className="w-full bg-white border border-zinc-200/90 focus:border-[#1D1D1F] focus:ring-2 focus:ring-black/5 rounded-xl p-3 text-xs text-zinc-900 placeholder:text-zinc-400 outline-none transition-all resize-none shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
             />
           </div>
 
@@ -433,7 +450,7 @@ function CancellationModal({
               <p>Bonjour <span className="font-semibold">{booking.customer_name}</span>,</p>
               <p>Nous regrettons de vous informer que votre rendez-vous chez <span className="font-semibold">{salonName}</span> prévu le <span className="font-semibold">{new Date(booking.start_time).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}, {formatTimeMU(booking.start_time)}</span> a dû être annulé.</p>
               <p className="text-zinc-600 bg-zinc-50 p-2 rounded-lg border border-zinc-100">
-                <strong>Motif :</strong> {customReason.trim() || selectedChip}
+                <strong>Motif :</strong> {effectiveReason}
               </p>
               {depositPaid && effectiveRefundStatus === "refunded" && (
                 <p className="text-emerald-700 bg-emerald-50/70 p-2 rounded-lg border border-emerald-100 text-[11px]">
