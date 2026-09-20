@@ -45,23 +45,6 @@ export default function AdminNav({ salonName }: { salonName: string }) {
       .join("")
       .toUpperCase() || "S";
 
-  // Live clock — updates every 30 seconds
-  const [clockTime, setClockTime] = useState("");
-  useEffect(() => {
-    function tick() {
-      setClockTime(
-        new Intl.DateTimeFormat("en-MU", {
-          timeZone: "Indian/Mauritius",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }).format(new Date())
-      );
-    }
-    tick();
-    const id = setInterval(tick, 30_000);
-    return () => clearInterval(id);
-  }, []);
 
   // Date label for desktop sub-line
   const [today, setToday] = useState("Today");
@@ -140,12 +123,6 @@ export default function AdminNav({ salonName }: { salonName: string }) {
               </svg>
               Sign Out
             </button>
-
-            {/* Mobile: Live clock pill (md:hidden) */}
-            <div className="md:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100 text-xs font-medium text-zinc-700">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#34C759] animate-pulse shrink-0" />
-              {clockTime ? `${clockTime} · Live` : "Live"}
-            </div>
           </div>
         </div>
       </nav>

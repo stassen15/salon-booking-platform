@@ -1597,8 +1597,42 @@ export default function DashboardClient({
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 px-4 py-4 md:space-y-6 md:py-8">
-      {/* ── Dashboard Header ── */}
-      <div className="flex items-center justify-between gap-3">
+      {/* ── Mobile Dashboard Header (< md) ── */}
+      <div className="flex md:hidden items-center justify-between mb-2">
+        {/* Left: Title & Subtitle */}
+        <div>
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+            {selectedDate === todayStr
+              ? "Today at the chair"
+              : selectedDate === tomorrowStr
+                ? "Tomorrow's chair"
+                : "Schedule · " + new Intl.DateTimeFormat("en-MU", {
+                    timeZone: "Indian/Mauritius",
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                  }).format(new Date(selectedDate + "T12:00:00+04:00")).toUpperCase()}
+          </span>
+          <div className="flex items-baseline gap-2 mt-0.5">
+            <h1 className="text-2xl font-bold tracking-tight text-[#1D1D1F]">Bookings</h1>
+            <span className="text-xs font-semibold text-zinc-400">{bookings.length} total</span>
+          </div>
+        </div>
+
+        {/* Right: Prominent Glanceable Live Time Card */}
+        <div className="flex flex-col items-end justify-center px-3.5 py-1.5 rounded-2xl bg-zinc-100/90 border border-zinc-200/70 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">Live</span>
+          </div>
+          <span className="font-mono font-bold text-xl tracking-tight text-[#1D1D1F] leading-none">
+            {clockTime}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Desktop Dashboard Header (md:) ── */}
+      <div className="hidden md:flex items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold tracking-wider uppercase text-[#86868B]">
             {selectedDate === todayStr
@@ -1612,18 +1646,13 @@ export default function DashboardClient({
                     month: "short",
                   }).format(new Date(selectedDate + "T12:00:00+04:00")).toUpperCase()}
           </p>
-          <div className="flex items-baseline gap-2 mt-0.5">
-            <h1 className="text-2xl font-semibold tracking-tight text-[#1D1D1F] md:text-3xl">
-              Bookings
-            </h1>
-            <span className="text-zinc-400 text-xs md:hidden font-medium">
-              {bookings.length} total
-            </span>
-          </div>
+          <h1 className="text-3xl font-semibold tracking-tight text-[#1D1D1F] mt-0.5">
+            Bookings
+          </h1>
         </div>
 
         {/* Desktop Dual Widget (Right Side Anchor) */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="flex items-center gap-3">
           {/* Live Clock Card */}
           <div className="flex items-center gap-2.5 px-4 py-2 bg-white rounded-2xl border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
