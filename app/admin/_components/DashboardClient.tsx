@@ -728,7 +728,16 @@ function CompletedRow({
   );
 }
 
-// ─── Compact Cancelled / No-Show Row (Calm Closed / Elevated Crisp Open) ───
+// ─── Format Cancelled By Helper ───────────────────────────────────────────────
+
+const formatCancelledBy = (val?: string | null) => {
+  if (!val) return "Salon Staff";
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(val)) return "Salon Admin";
+  if (val.toLowerCase() === "salon") return "Salon Admin";
+  return val;
+};
+
+// ─── Compact Cancelled / No-Show Row (Hardware-Accelerated Accordion) ─────────
 
 function CancelledRow({
   booking,
@@ -745,11 +754,6 @@ function CancelledRow({
   const isNoShow = booking.status === "no_show";
 
   const stylistName = staffMember?.name || "Any available";
-  const cancelledByText = booking.cancelled_by
-    ? booking.cancelled_by === "salon"
-      ? "Salon"
-      : booking.cancelled_by
-    : "Customer";
   const cancelledAtText = booking.cancelled_at
     ? formatTimeMU(booking.cancelled_at)
     : "Prior";
@@ -761,22 +765,12 @@ function CancelledRow({
     booking.refund_status === "refunded" || Boolean(booking.refund_reference);
 
   return (
-    <div
-      className={
-        expanded
-          ? "opacity-100 bg-white rounded-2xl border border-zinc-300 shadow-[0_4px_16px_rgba(0,0,0,0.06)] p-4 my-2 transition-all overflow-hidden"
-          : "opacity-40 hover:opacity-90 bg-zinc-50/40 hover:bg-zinc-50/70 border border-zinc-100 rounded-xl transition-all overflow-hidden"
-      }
-    >
+    <div className="border border-zinc-200/80 bg-white rounded-2xl p-3.5 sm:p-4 my-2 transform-gpu shadow-sm">
       {/* Clickable row header */}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className={
-          expanded
-            ? "w-full flex items-center justify-between gap-3 text-left pb-3 mb-3 border-b border-zinc-100 transition-colors"
-            : "w-full flex items-center justify-between gap-3 px-3.5 py-2 text-left transition-colors"
-        }
+        className="w-full flex items-center justify-between gap-3 text-left transition-colors"
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-600 shrink-0">
@@ -803,7 +797,9 @@ function CancelledRow({
             </span>
           )}
           <svg
-            className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+            className={`w-3.5 h-3.5 text-zinc-400 transform transition-transform duration-200 ${
+              expanded ? "rotate-180" : "rotate-0"
+            }`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -813,62 +809,68 @@ function CancelledRow({
         </div>
       </button>
 
-      {/* Expanded High-Contrast Arm's-Length Details */}
-      {expanded && (
-        <div>
-          {/* 1. Client & Stylist Metadata Grid */}
-          <div className="grid grid-cols-2 gap-4 pb-3 border-b border-zinc-100">
-            <div>
-              <span className="block text-[10px] font-bold tracking-wider uppercase text-zinc-500">Client</span>
-              <span className="text-sm font-semibold text-[#1D1D1F]">{booking.customer_name}</span>
-              <span className="block text-xs font-mono text-zinc-600 mt-0.5">{booking.customer_phone}</span>
-            </div>
-            <div>
-              <span className="block text-[10px] font-bold tracking-wider uppercase text-zinc-500">Stylist</span>
-              <span className="text-sm font-semibold text-[#1D1D1F]">{stylistName}</span>
-            </div>
-          </div>
-
-          {/* 2. Reason Callout Banner */}
-          <div className="mt-3 p-3 rounded-xl bg-zinc-100 border border-zinc-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <span className="block text-[10px] font-bold tracking-wider uppercase text-zinc-500">Reason</span>
-              <span className="text-xs font-semibold text-zinc-900">{booking.cancellation_reason || "No reason specified"}</span>
-            </div>
-            <span className="text-[11px] font-medium text-zinc-500 shrink-0">
-              Cancelled by {cancelledByText} · {cancelledAtText}
-            </span>
-          </div>
-
-          {/* 3. High-Contrast Juice Refund Badge */}
-          {isRefunded && (
-            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-              Deposit Refunded via Juice
-              <span className="font-mono text-emerald-950 font-bold ml-1">Ref: {juiceRef}</span>
-            </div>
-          )}
-
-          {/* 4. Pending Refund Alert & Quick Action */}
-          {booking.refund_status === "pending" && (
-            <div className="mt-3 p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 flex items-center justify-between gap-3">
+      {/* Hardware-Accelerated Accordion Animation (Zero Mobile Stutter) */}
+      <div
+        className={`grid transition-[grid-template-rows] duration-200 ease-out transform-gpu ${
+          expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="pt-3 border-t border-zinc-100 mt-3">
+            {/* 1. Client & Stylist Metadata Grid */}
+            <div className="grid grid-cols-2 gap-4 pb-3 border-b border-zinc-100">
               <div>
-                <span className="block text-[10px] font-bold tracking-wider uppercase text-amber-700">Refund Required</span>
-                <span className="text-xs font-semibold text-amber-900">
-                  Deposit Refund Due: Rs {booking.deposit_required_mur || service?.deposit_required_mur || 0}
-                </span>
+                <span className="block text-[10px] font-bold tracking-wider uppercase text-zinc-500">Client</span>
+                <span className="text-sm font-semibold text-[#1D1D1F]">{booking.customer_name}</span>
+                <span className="block text-xs font-mono text-zinc-600 mt-0.5">{booking.customer_phone}</span>
               </div>
-              <button
-                type="button"
-                onClick={() => onInitiateRefundComplete(booking)}
-                className="px-3 py-1.5 rounded-xl bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white text-xs font-medium shadow-sm transition shrink-0"
-              >
-                Record Refund
-              </button>
+              <div>
+                <span className="block text-[10px] font-bold tracking-wider uppercase text-zinc-500">Stylist</span>
+                <span className="text-sm font-semibold text-[#1D1D1F]">{stylistName}</span>
+              </div>
             </div>
-          )}
+
+            {/* 2. Reason Callout Banner */}
+            <div className="mt-3 p-3 rounded-xl bg-zinc-100 border border-zinc-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <span className="block text-[10px] font-bold tracking-wider uppercase text-zinc-500">Reason</span>
+                <span className="text-xs font-semibold text-zinc-900">{booking.cancellation_reason || "No reason specified"}</span>
+              </div>
+              <span className="text-[11px] font-medium text-zinc-500 shrink-0">
+                Cancelled by {formatCancelledBy(booking.cancelled_by)} · {cancelledAtText}
+              </span>
+            </div>
+
+            {/* 3. High-Contrast Juice Refund Badge */}
+            {isRefunded && (
+              <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                Deposit Refunded via Juice
+                <span className="font-mono text-emerald-950 font-bold ml-1">Ref: {juiceRef}</span>
+              </div>
+            )}
+
+            {/* 4. Pending Refund Alert & Quick Action */}
+            {booking.refund_status === "pending" && (
+              <div className="mt-3 p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 flex items-center justify-between gap-3">
+                <div>
+                  <span className="block text-[10px] font-bold tracking-wider uppercase text-amber-700">Refund Required</span>
+                  <span className="text-xs font-semibold text-amber-900">
+                    Deposit Refund Due: Rs {booking.deposit_required_mur || service?.deposit_required_mur || 0}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onInitiateRefundComplete(booking)}
+                  className="px-3 py-1.5 rounded-xl bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white text-xs font-medium shadow-sm transition shrink-0"
+                >
+                  Record Refund
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -893,30 +895,47 @@ function CancelledGroupRow({
       <button
         type="button"
         onClick={() => setExpandCancelled(!expandCancelled)}
-        className="w-full flex items-center justify-between py-2 px-4 my-1.5 rounded-xl bg-zinc-50/50 hover:bg-zinc-100/60 border border-zinc-200/40 text-xs text-zinc-400 transition-all"
+        className="w-full flex items-center justify-between py-2 px-4 my-1.5 rounded-xl bg-zinc-50/50 hover:bg-zinc-100/60 border border-zinc-200/40 text-xs text-zinc-400 transition-colors"
       >
         <span className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-zinc-300" />
           {bookings.length} cancelled or released slots
         </span>
-        <span className="text-[11px] font-medium text-zinc-400">
-          {expandCancelled ? "Hide ▴" : "Show ▾"}
+        <span className="flex items-center gap-1 text-[11px] font-medium text-zinc-400">
+          <span>{expandCancelled ? "Hide" : "Show"}</span>
+          <svg
+            className={`w-3 h-3 transform transition-transform duration-200 ${
+              expandCancelled ? "rotate-180" : "rotate-0"
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
         </span>
       </button>
 
-      {expandCancelled && (
-        <div className="space-y-1.5 pl-1 pt-1">
-          {bookings.map((booking) => (
-            <CancelledRow
-              key={booking.id}
-              booking={booking}
-              service={serviceMap[booking.service_id]}
-              staffMember={staffMap[booking.staff_id]}
-              onInitiateRefundComplete={onInitiateRefundComplete}
-            />
-          ))}
+      {/* Hardware-Accelerated Accordion for Group */}
+      <div
+        className={`grid transition-[grid-template-rows] duration-200 ease-out transform-gpu ${
+          expandCancelled ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="space-y-1.5 pl-1 pt-1">
+            {bookings.map((booking) => (
+              <CancelledRow
+                key={booking.id}
+                booking={booking}
+                service={serviceMap[booking.service_id]}
+                staffMember={staffMap[booking.staff_id]}
+                onInitiateRefundComplete={onInitiateRefundComplete}
+              />
+            ))}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
