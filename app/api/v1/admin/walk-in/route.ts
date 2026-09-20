@@ -47,49 +47,37 @@ export async function POST(request: Request) {
 
   const duration = Math.min(Math.max(body.durationMinutes ?? 30, 15), 240);
 
-  // Fetch today's bookings for this staff to check conflicts
-  const windowStart = new Date();
-  windowStart.setUTCHours(0, 0, 0, 0);
-  const windowEnd = addMinutes(windowStart, 24 * 60);
+  const now = new Date();
+  const nowIso = now.toISOString();
 
-  const { data: existingBookings } = await supabase
+  // 1. Check if an appointment is currently active right now
+  const { data: activeBookings } = await supabase
     .from("bookings")
-    .select("start_time, end_time, status")
+    .select("id, start_time, end_time, status")
     .eq("salon_id", salonId)
     .eq("staff_id", staffId)
-    .not("status", "in", '("cancelled","no_show")')
-    .gte("start_time", windowStart.toISOString())
-    .lte("start_time", windowEnd.toISOString());
+    .eq("status", "confirmed")
+    .lte("start_time", nowIso)
+    .gt("end_time", nowIso)
+    .order("end_time", { ascending: false })
+    .limit(1);
 
-  const occupied = (existingBookings ?? []).map((b) => ({
-    start: new Date(b.start_time).getTime(),
-    end: new Date(b.end_time).getTime(),
-  }));
+  const activeAppointment = activeBookings?.[0];
 
-  // Find next free 15-minute-aligned slot starting from now
-  let candidateStart = new Date(
-    Math.ceil(Date.now() / (15 * 60_000)) * (15 * 60_000)
-  );
-  let candidateEnd = addMinutes(candidateStart, duration);
-  const searchLimit = addMinutes(new Date(), 4 * 60); // search up to 4h ahead
-
-  let found = false;
-  while (candidateStart <= searchLimit) {
-    const cs = candidateStart.getTime();
-    const ce = candidateEnd.getTime();
-    const conflicts = occupied.some((o) => cs < o.end && ce > o.start);
-    if (!conflicts) {
-      found = true;
-      break;
-    }
-    // Advance by 15 minutes and try again
-    candidateStart = addMinutes(candidateStart, 15);
-    candidateEnd = addMinutes(candidateStart, duration);
+  let candidateStart: Date;
+  if (activeAppointment) {
+    // An appointment is currently active right now:
+    // Set the walk-in start_time to the active appointment's end_time (holds the chair for when client finishes)
+    candidateStart = new Date(activeAppointment.end_time);
+  } else {
+    // No appointment is currently active (chair is empty right now):
+    // Snap the walk-in start_time to current minute rounded to nearest 5 minutes (e.g., 13:24 becomes 13:25)
+    const FIVE_MIN_MS = 5 * 60_000;
+    const roundedMs = Math.round(now.getTime() / FIVE_MIN_MS) * FIVE_MIN_MS;
+    candidateStart = new Date(roundedMs);
   }
 
-  if (!found) {
-    return jsonError("No free slot available in the next 4 hours", 409);
-  }
+  const candidateEnd = addMinutes(candidateStart, duration);
 
   const { data, error } = await adminSupabase
     .from("bookings")

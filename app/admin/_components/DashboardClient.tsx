@@ -154,13 +154,27 @@ function isWalkIn(booking: AdminBooking): boolean {
 }
 
 function bookingIsInChair(booking: AdminBooking, nowMs: number): boolean {
-  return (
+  const isActive =
     booking.status !== "cancelled" &&
     booking.status !== "completed" &&
-    booking.status !== "no_show" &&
-    new Date(booking.start_time).getTime() <= nowMs &&
-    new Date(booking.end_time).getTime() > nowMs
-  );
+    booking.status !== "no_show";
+  if (!isActive) return false;
+
+  const startMs = new Date(booking.start_time).getTime();
+  const endMs = new Date(booking.end_time).getTime();
+
+  if (endMs <= nowMs) return false;
+
+  // Active in chair if started already
+  if (startMs <= nowMs) return true;
+
+  // If a walk-in was snapped to the nearest 5 minutes on an empty chair (e.g., 13:24 -> 13:25),
+  // allow up to 2.5 minutes buffer into the future so it immediately activates as IN CHAIR
+  if (isWalkIn(booking) && startMs - nowMs <= 2.5 * 60_000) {
+    return true;
+  }
+
+  return false;
 }
 
 // ─── Cancellation Modal (Apple HIG Sheet) ─────────────────────────────────────
