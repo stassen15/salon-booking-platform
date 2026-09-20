@@ -284,50 +284,57 @@ function CancellationModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md overflow-y-auto"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="w-full max-w-lg rounded-2xl bg-white border border-black/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.18)] overflow-hidden my-6">
+        {/* Modal Header */}
         <div className="bg-[#F5F5F7] border-b border-black/[0.06] px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-[#FF3B30]/10 flex items-center justify-center text-[#FF3B30] shrink-0">
+            <div className="w-10 h-10 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
             <div>
               <h3 className="font-semibold text-[#1D1D1F] text-base">Cancel Appointment</h3>
-              <p className="text-xs text-[#86868B]">
-                {booking.customer_name} &bull; {formatTimeMU(booking.start_time)}
-                {" "}({service?.name ?? "Service"}{staffMember ? ` &bull; ${staffMember.name}` : ""})
+              <p className="text-xs text-zinc-500 mt-0.5">
+                {booking.customer_name} · {formatTimeMU(booking.start_time)} · {service?.name ?? "Service"} ({staffMember?.name || "Stylist"})
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/[0.05] transition"
+            aria-label="Close"
+            className="hover:bg-zinc-100 rounded-full p-2 transition-colors text-zinc-400 hover:text-zinc-700"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+        {/* Modal Body (smooth hidden scrollbar) */}
+        <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {/* Reason for Cancellation (Compact 2-Column Grid) */}
           <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#86868B] mb-2">
-              Reason for Cancellation
+            <label className="block text-[11px] font-bold tracking-wider uppercase text-zinc-400 mb-2">
+              Reason for cancellation
             </label>
-            <div className="flex flex-wrap gap-1.5 mb-2.5">
+            <div className="grid grid-cols-2 gap-2 mb-3">
               {QUICK_REASONS.map((r) => (
                 <button
                   key={r}
                   type="button"
                   onClick={() => { setSelectedChip(r); setCustomReason(r); }}
-                  className={
-                    "text-xs px-3 py-1.5 rounded-full font-medium transition " +
-                    (selectedChip === r
-                      ? "bg-[#1D1D1F] text-white shadow-sm"
-                      : "bg-[#F5F5F7] text-[#1D1D1F] hover:bg-[#E8E8ED]")
-                  }
+                  className={`py-2 px-3 text-xs rounded-xl font-medium text-left transition-all border ${
+                    (customReason.trim() === r || selectedChip === r)
+                      ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
+                      : "bg-zinc-50 hover:bg-zinc-100 text-zinc-700 border-zinc-200/70"
+                  }`}
                 >
                   {r}
                 </button>
@@ -338,10 +345,11 @@ function CancellationModal({
               value={customReason}
               onChange={(e) => setCustomReason(e.target.value)}
               placeholder="Explain why you need to cancel..."
-              className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[#F5F5F7] border border-black/[0.06] text-[#1D1D1F] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1D1D1F] transition"
+              className="w-full text-xs border border-zinc-200 rounded-xl resize-none p-2.5 bg-zinc-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1D1D1F] transition text-[#1D1D1F]"
             />
           </div>
 
+          {/* MCB Juice Deposit Section */}
           {depositPaid ? (
             <div className="rounded-2xl bg-[#F5F5F7] border border-black/[0.06] p-4 space-y-3">
               <div className="flex items-center justify-between gap-2">
@@ -412,44 +420,70 @@ function CancellationModal({
             </div>
           )}
 
-          <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#86868B] mb-2">
-              WhatsApp Message Preview
-            </label>
-            <div className="rounded-xl bg-[#1D1D1F] text-white p-4 font-sans text-xs whitespace-pre-line leading-relaxed shadow-inner">
-              {messageText}
+          {/* WhatsApp Preview as an Authentic Chat Bubble (Kill the Black Terminal Box) */}
+          <div className="rounded-2xl bg-[#EFEAE2]/60 border border-[#D1D7DB] p-3.5 my-3 relative">
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-black/[0.06]">
+              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                WhatsApp Notification Preview
+              </span>
+              <span className="text-[10px] text-zinc-400 font-mono">Template: utility_cancel</span>
+            </div>
+            <div className="bg-white rounded-xl rounded-tl-none p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-xs text-zinc-800 leading-relaxed space-y-2 border border-black/[0.04]">
+              <p>Bonjour <span className="font-semibold">{booking.customer_name}</span>,</p>
+              <p>Nous regrettons de vous informer que votre rendez-vous chez <span className="font-semibold">{salonName}</span> prévu le <span className="font-semibold">{new Date(booking.start_time).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}, {formatTimeMU(booking.start_time)}</span> a dû être annulé.</p>
+              <p className="text-zinc-600 bg-zinc-50 p-2 rounded-lg border border-zinc-100">
+                <strong>Motif :</strong> {customReason.trim() || selectedChip}
+              </p>
+              {depositPaid && effectiveRefundStatus === "refunded" && (
+                <p className="text-emerald-700 bg-emerald-50/70 p-2 rounded-lg border border-emerald-100 text-[11px]">
+                  ✓ Acompte de Rs {depositAmount} remboursé via MCB Juice {refundRef ? `(Réf : ${refundRef})` : ""}.
+                </p>
+              )}
+              {depositPaid && effectiveRefundStatus === "pending" && (
+                <p className="text-amber-700 bg-amber-50/70 p-2 rounded-lg border border-amber-100 text-[11px]">
+                  ⏳ Remboursement de votre acompte de Rs {depositAmount} en cours de traitement via Juice.
+                </p>
+              )}
+              <p className="text-[11px] text-zinc-500">L&apos;équipe {salonName}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-[#F5F5F7] border-t border-black/[0.06] px-6 py-4 flex flex-col sm:flex-row gap-2.5 justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={submitting}
-            className="px-4 py-2.5 rounded-xl border border-black/[0.08] bg-white text-xs font-medium text-[#1D1D1F] hover:bg-[#E8E8ED] transition"
-          >
-            Keep Appointment
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSubmit(false)}
-            disabled={submitting}
-            className="px-4 py-2.5 rounded-xl bg-[#1D1D1F] hover:bg-[#2C2C2E] text-white text-xs font-medium shadow-sm transition active:scale-[0.98] disabled:opacity-50"
-          >
-            Cancel Only
-          </button>
+        {/* Modal Footer: Clean Action Hierarchy */}
+        <div className="bg-[#F5F5F7]/80 border-t border-black/[0.06] px-6 py-4 flex flex-col items-center gap-2">
+          {/* Primary action (Top): Full-width button Cancel & Send WhatsApp */}
           <button
             type="button"
             onClick={() => handleSubmit(true)}
             disabled={submitting}
-            className="px-4 py-2.5 rounded-xl bg-[#34C759] hover:bg-[#2DB04D] text-white text-xs font-semibold shadow-sm transition flex items-center justify-center gap-1.5 active:scale-[0.98] disabled:opacity-50"
+            className="w-full bg-[#1D1D1F] hover:bg-black text-white font-semibold text-xs py-3 px-4 rounded-xl shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="w-4 h-4 text-[#34C759]" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
               <path d="M12 0C5.373 0 0 5.373 0 12c0 2.098.546 4.14 1.587 5.945L.057 23.35a.99.99 0 001.244 1.206l5.526-1.493A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.9a9.9 9.9 0 01-5.031-1.37l-.36-.214-3.734 1.01 1.018-3.625-.234-.375A9.9 9.9 0 012.1 12C2.1 6.534 6.534 2.1 12 2.1S21.9 6.534 21.9 12 17.466 21.9 12 21.9z" />
             </svg>
-            Cancel &amp; WhatsApp Client
+            Cancel &amp; Send WhatsApp
+          </button>
+
+          {/* Secondary action (Middle): Quiet button Cancel without notifying client */}
+          <button
+            type="button"
+            onClick={() => handleSubmit(false)}
+            disabled={submitting}
+            className="text-zinc-500 hover:text-rose-600 text-xs py-1.5 transition-colors disabled:opacity-50"
+          >
+            Cancel without notifying client
+          </button>
+
+          {/* Dismiss action (Bottom): Keep Appointment text link */}
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            className="text-zinc-400 hover:text-zinc-700 text-xs transition-colors"
+          >
+            Keep Appointment
           </button>
         </div>
       </div>
