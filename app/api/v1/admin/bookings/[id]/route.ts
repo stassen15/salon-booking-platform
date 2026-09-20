@@ -38,7 +38,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const { data: existing, error: loadError } = await supabase
     .from("bookings")
-    .select("id, salon_id, customer_name, customer_phone, start_time, status, payment_status")
+    .select("id, salon_id, customer_name, customer_phone, start_time, end_time, status, payment_status")
     .eq("id", id)
     .in("salon_id", salonIds)
     .maybeSingle();
@@ -52,6 +52,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const patch: {
     status?: "confirmed" | "cancelled" | "no_show" | "completed";
+    end_time?: string;
     payment_status?: "unpaid" | "deposit_submitted" | "paid_in_full";
     juice_reference?: string;
     juice_proof_url?: string | null;
@@ -67,6 +68,15 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   if (parsed.data.status) {
     patch.status = parsed.data.status;
+    if (parsed.data.status === "completed" && existing.start_time) {
+      const now = new Date();
+      const startTime = new Date(existing.start_time);
+      const scheduledEnd = existing.end_time ? new Date(existing.end_time) : null;
+      // If completed early, trim end_time to now so chair is immediately freed
+      if (now > startTime && (!scheduledEnd || scheduledEnd > now)) {
+        patch.end_time = now.toISOString();
+      }
+    }
   }
   if (parsed.data.paymentStatus) {
     patch.payment_status = parsed.data.paymentStatus;

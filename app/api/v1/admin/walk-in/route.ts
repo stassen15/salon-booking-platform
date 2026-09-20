@@ -51,7 +51,7 @@ export async function POST(request: Request) {
   const nowIso = now.toISOString();
 
   // 1. Check if an appointment is currently active right now
-  const { data: activeBookings } = await supabase
+  const { data: activeBookings } = await adminSupabase
     .from("bookings")
     .select("id, start_time, end_time, status")
     .eq("salon_id", salonId)
@@ -77,7 +77,55 @@ export async function POST(request: Request) {
     candidateStart = new Date(roundedMs);
   }
 
-  const candidateEnd = addMinutes(candidateStart, duration);
+  let candidateEnd = addMinutes(candidateStart, duration);
+
+  // 2. Prevent exclusion constraint violations ("no_double_booking"):
+  // Resolve any bookings on this staff overlapping [candidateStart, candidateEnd)
+  const { data: overlaps } = await adminSupabase
+    .from("bookings")
+    .select("id, start_time, end_time, status")
+    .eq("staff_id", staffId)
+    .not("status", "in", '("cancelled","no_show")')
+    .lt("start_time", candidateEnd.toISOString())
+    .gt("end_time", candidateStart.toISOString())
+    .order("start_time", { ascending: true });
+
+  if (overlaps && overlaps.length > 0) {
+    for (const overlap of overlaps) {
+      if (overlap.status === "completed") {
+        // The previous client already finished and left the chair.
+        // Truncate its end_time to candidateStart so its stored booking_range frees this slot.
+        const overlapStart = new Date(overlap.start_time);
+        if (candidateStart.getTime() > overlapStart.getTime()) {
+          await adminSupabase
+            .from("bookings")
+            .update({ end_time: candidateStart.toISOString() })
+            .eq("id", overlap.id);
+        }
+      } else {
+        // Confirmed or pending booking: avoid double-booking
+        const overlapStart = new Date(overlap.start_time);
+        const overlapEnd = new Date(overlap.end_time);
+
+        if (overlapStart.getTime() <= candidateStart.getTime()) {
+          // If the existing booking starts before or at candidateStart, place walk-in immediately after it
+          candidateStart = overlapEnd;
+          candidateEnd = addMinutes(candidateStart, duration);
+        } else if (overlapStart.getTime() < candidateEnd.getTime()) {
+          // Future booking begins before candidateEnd
+          const freeMinutes = Math.floor((overlapStart.getTime() - candidateStart.getTime()) / 60_000);
+          if (freeMinutes >= 15) {
+            // Trim walk-in to end exactly when the next appointment begins
+            candidateEnd = overlapStart;
+          } else {
+            // Not enough gap, place walk-in after the future appointment
+            candidateStart = overlapEnd;
+            candidateEnd = addMinutes(candidateStart, duration);
+          }
+        }
+      }
+    }
+  }
 
   const { data, error } = await adminSupabase
     .from("bookings")
