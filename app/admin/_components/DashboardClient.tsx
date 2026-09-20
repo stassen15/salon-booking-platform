@@ -936,6 +936,7 @@ function BookingCard({
   onInitiateRefundComplete: (booking: AdminBooking) => void;
 }) {
   const [updating, setUpdating] = useState(false);
+  const [showActions, setShowActions] = useState(false);
 
   const inChair = bookingIsInChair(booking, nowMs);
   const minsRemaining = inChair
@@ -949,7 +950,6 @@ function BookingCard({
 
   const hasDeposit = service && service.deposit_required_mur > 0;
   const depositPending = booking.payment_status === "deposit_submitted";
-  const STATUS_ACTIONS: BookingStatus[] = ["confirmed", "completed", "no_show", "cancelled"];
 
   async function handleStatus(newStatus: BookingStatus) {
     if (updating || booking.status === newStatus) return;
@@ -1082,36 +1082,36 @@ function BookingCard({
       }
     >
       <div className="space-y-3.5">
-        {/* Header Row */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="text-xl font-semibold tracking-tight tabular-nums text-[#1D1D1F] shrink-0">
-              {formatTimeMU(booking.start_time)} &ndash; {formatTimeMU(booking.end_time)}
-            </span>
-            <span className="text-[#86868B] shrink-0">&bull;</span>
-            <span className="text-sm font-medium text-[#1D1D1F] truncate">
-              {service?.name ?? "Service"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {isUpNext && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#34C759]/10 text-[10px] font-semibold text-[#248A3D] uppercase tracking-wider border border-[#34C759]/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#34C759] animate-pulse" />
-                Up Next
+        {/* ── Header Row: Time • Service name • Status badge ── */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xl font-semibold tracking-tight tabular-nums text-[#1D1D1F] shrink-0">
+                {formatTimeMU(booking.start_time)} &ndash; {formatTimeMU(booking.end_time)}
               </span>
-            )}
-            <AppleStatusBadge status={booking.status} />
+              {isUpNext && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#34C759]/10 text-[10px] font-semibold text-[#248A3D] uppercase tracking-wider border border-[#34C759]/20 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#34C759] animate-pulse" />
+                  Up Next
+                </span>
+              )}
+            </div>
+            {/* Service name — allowed to wrap, no ellipsis */}
+            <p className="text-sm font-medium text-[#1D1D1F] mt-0.5 break-words leading-snug">
+              {service?.name ?? "Service"}
+            </p>
           </div>
+          <AppleStatusBadge status={booking.status} />
         </div>
 
-        {/* Stylist */}
+        {/* ── Stylist ── */}
         {staffMember && (
           <p className="text-xs text-[#86868B]">
             Stylist: <span className="text-[#1D1D1F] font-medium">{staffMember.name}</span>
           </p>
         )}
 
-        {/* Customer & Call / WA */}
+        {/* ── Customer & Contact ── */}
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="font-semibold text-[#1D1D1F] text-base truncate">{booking.customer_name}</p>
@@ -1142,53 +1142,80 @@ function BookingCard({
           </div>
         </div>
 
-        {/* Juice Deposit Block */}
+        {/* ── Modernized MCB Juice Deposit Strip ── */}
         {hasDeposit && (
-          <div className="rounded-xl bg-[#F5F5F7] p-3 flex items-center justify-between gap-2 border border-black/[0.04]">
-            <div>
-              <p className="text-xs font-medium text-[#1D1D1F]">
-                MCB Juice &bull; <span className="text-[#86868B]">Rs </span>{service.deposit_required_mur}
-              </p>
-              {booking.juice_reference ? (
-                <p className="text-[11px] font-mono text-[#86868B]">Ref: {booking.juice_reference}</p>
-              ) : (
-                <p className="text-[11px] text-[#86868B] italic">No reference recorded</p>
-              )}
+          <div className="flex items-center justify-between px-3 py-2 bg-zinc-50 border border-zinc-200/60 rounded-xl text-xs my-0.5">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-zinc-900">MCB Juice</span>
+              <span className="text-zinc-400">·</span>
+              <span className="font-mono text-zinc-700 font-medium">Rs {service!.deposit_required_mur}</span>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <ApplePaymentBadge paymentStatus={booking.payment_status} />
               {depositPending && (
                 <button
                   onClick={handleDeposit}
-                  className="px-2.5 py-1 rounded-lg bg-[#34C759] hover:bg-[#2DB04D] text-white text-xs font-semibold shadow-sm transition"
+                  className="px-2.5 py-1 rounded-lg bg-[#34C759] hover:bg-[#2DB04D] text-white text-xs font-semibold shadow-sm transition active:scale-[0.98]"
                 >
                   Verify
                 </button>
+              )}
+              {booking.juice_reference && (
+                <span className="flex items-center gap-1 font-mono text-[11px] text-zinc-500">
+                  Ref: {booking.juice_reference}
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-0.5" />
+                </span>
               )}
             </div>
           </div>
         )}
 
-        {/* Status Pills */}
-        <div className="flex flex-nowrap gap-1.5 overflow-x-auto pt-1">
-          {STATUS_ACTIONS.map((s) => {
-            const isCurrent = booking.status === s;
-            return (
+        {/* ── Apple Action Pattern: Complete CTA + ••• menu ── */}
+        {(booking.status === "confirmed" || booking.status === "pending") && (
+          <div className="pt-0.5">
+            <div className="flex items-center gap-2">
+              {/* Primary CTA */}
               <button
-                key={s}
-                onClick={() => handleStatus(s)}
-                disabled={isCurrent}
-                className={
-                  isCurrent
-                    ? "px-3 py-1.5 rounded-full text-xs font-semibold bg-[#1D1D1F] text-white shadow-sm"
-                    : "px-3 py-1.5 rounded-full text-xs font-medium bg-[#F5F5F7] text-[#86868B] hover:text-[#1D1D1F] hover:bg-[#E8E8ED] transition"
-                }
+                onClick={() => handleStatus("completed")}
+                disabled={updating}
+                className="flex-1 bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white font-semibold text-xs rounded-xl py-2.5 px-4 shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
-                {STATUS_LABEL[s]}
+                <svg className="w-3.5 h-3.5 text-[#34C759]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+                Complete &amp; Collect Rs {service?.price_mur ?? 0}
               </button>
-            );
-          })}
-        </div>
+
+              {/* ••• overflow menu */}
+              <div className="relative shrink-0">
+                <button
+                  onClick={() => setShowActions((v) => !v)}
+                  className="w-10 h-10 rounded-xl bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#86868B] hover:text-[#1D1D1F] font-bold text-sm transition flex items-center justify-center active:scale-[0.96]"
+                  aria-label="More actions"
+                >
+                  •••
+                </button>
+
+                {showActions && (
+                  <div className="absolute right-0 bottom-12 w-52 rounded-2xl border border-zinc-200/70 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.12)] overflow-hidden z-20">
+                    <button
+                      onClick={() => { setShowActions(false); handleStatus("no_show"); }}
+                      className="w-full text-left px-4 py-3 text-sm font-medium text-zinc-800 hover:bg-zinc-50 border-b border-zinc-100 transition-colors"
+                    >
+                      Mark as No-Show
+                    </button>
+                    <button
+                      onClick={() => { setShowActions(false); handleStatus("cancelled"); }}
+                      className="w-full text-left px-4 py-3 text-sm font-medium text-[#FF3B30] hover:bg-red-50 transition-colors"
+                    >
+                      Cancel Appointment
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1591,52 +1618,64 @@ export default function DashboardClient({
         </div>
       </div>
 
-      {/* ── Apple Health-Style Metric Cards ── */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+      {/* ── Metrics: 1-row glanceable strip on mobile ── */}
+      <div className="grid grid-cols-4 gap-2 bg-zinc-100/80 p-2.5 rounded-2xl mb-1 text-center md:hidden">
+        <div>
+          <span className="block text-[10px] font-semibold tracking-tight uppercase text-zinc-500">Active</span>
+          <span className="font-semibold text-base tabular-nums text-[#1D1D1F] leading-snug">{activeBookings.length}</span>
+        </div>
+        <div>
+          <span className="block text-[10px] font-semibold tracking-tight uppercase text-zinc-500">Revenue</span>
+          <span className="font-semibold text-base tabular-nums text-[#1D1D1F] leading-snug">
+            <span className="text-[10px] font-normal text-zinc-400">Rs </span>{estRevenue.toLocaleString()}
+          </span>
+        </div>
+        <div>
+          <span className="block text-[10px] font-semibold tracking-tight uppercase text-zinc-500">Verify</span>
+          <span className={`font-semibold text-base tabular-nums leading-snug ${pendingDeposits > 0 ? "text-amber-600" : "text-zinc-400"}`}>
+            {pendingDeposits}
+          </span>
+        </div>
+        <div>
+          <span className="block text-[10px] font-semibold tracking-tight uppercase text-zinc-500">Refunds</span>
+          <span className={`font-semibold text-base tabular-nums leading-snug ${pendingRefunds > 0 ? "text-[#FF3B30]" : "text-zinc-400"}`}>
+            {pendingRefunds}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Metrics: 4-col large cards on desktop ── */}
+      <div className="hidden md:grid md:grid-cols-4 gap-3">
         {/* Bookings */}
         <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] p-4 transition-all">
-          <p className="text-[11px] font-semibold tracking-wider uppercase text-[#86868B] mb-1">
-            Bookings
-          </p>
-          <p className="text-2xl font-semibold tracking-tight tabular-nums text-[#1D1D1F]">
-            {activeBookings.length}
-          </p>
+          <p className="text-[11px] font-semibold tracking-wider uppercase text-[#86868B] mb-1">Bookings</p>
+          <p className="text-2xl font-semibold tracking-tight tabular-nums text-[#1D1D1F]">{activeBookings.length}</p>
           <p className="text-xs text-[#86868B] mt-0.5">active today</p>
         </div>
-
         {/* Revenue */}
         <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] p-4 transition-all">
-          <p className="text-[11px] font-semibold tracking-wider uppercase text-[#86868B] mb-1">
-            Revenue
-          </p>
+          <p className="text-[11px] font-semibold tracking-wider uppercase text-[#86868B] mb-1">Revenue</p>
           <p className="text-2xl font-semibold tracking-tight tabular-nums text-[#1D1D1F]">
-            <span className="text-sm font-normal text-[#86868B]">Rs </span>
-            {estRevenue.toLocaleString()}
+            <span className="text-sm font-normal text-[#86868B]">Rs </span>{estRevenue.toLocaleString()}
           </p>
           <p className="text-xs text-[#86868B] mt-0.5">est. total</p>
         </div>
-
         {/* Deposits */}
         <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] p-4 transition-all">
           <p className="text-[11px] font-semibold tracking-wider uppercase text-[#86868B] mb-1 flex items-center gap-1.5">
             {pendingDeposits > 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#FF9500] animate-pulse" />}
             Deposits
           </p>
-          <p className="text-2xl font-semibold tracking-tight tabular-nums text-[#1D1D1F]">
-            {pendingDeposits}
-          </p>
+          <p className="text-2xl font-semibold tracking-tight tabular-nums text-[#1D1D1F]">{pendingDeposits}</p>
           <p className="text-xs text-[#86868B] mt-0.5">to verify</p>
         </div>
-
         {/* Refunds */}
         <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] p-4 transition-all">
           <p className="text-[11px] font-semibold tracking-wider uppercase text-[#86868B] mb-1 flex items-center gap-1.5">
             {pendingRefunds > 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B30] animate-pulse" />}
             Refunds
           </p>
-          <p className="text-2xl font-semibold tracking-tight tabular-nums text-[#1D1D1F]">
-            {pendingRefunds}
-          </p>
+          <p className="text-2xl font-semibold tracking-tight tabular-nums text-[#1D1D1F]">{pendingRefunds}</p>
           <p className="text-xs text-[#86868B] mt-0.5">pending action</p>
         </div>
       </div>
