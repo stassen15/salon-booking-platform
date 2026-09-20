@@ -600,35 +600,33 @@ function WalkInCard({
           (busy ? "opacity-60 pointer-events-none" : "")
         }
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-100">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              IN CHAIR
-            </span>
-            <span className="text-xs font-medium text-[#86868B]">
-              Ends at {formatTimeMU(booking.end_time)} &bull; {minsRemaining} min{minsRemaining === 1 ? "" : "s"} left
-            </span>
-          </div>
-
-          <span className="font-mono font-semibold text-sm text-[#1D1D1F]">
-            <span className="text-xs font-normal text-[#86868B]">Rs </span>{servicePrice || 300}
+        <div className="flex items-center justify-between gap-3 pb-3.5 border-b border-zinc-100">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold shrink-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            IN CHAIR
+          </span>
+          <span className="text-xs font-medium text-[#86868B] text-right truncate">
+            Ends at {formatTimeMU(booking.end_time)} &bull; {minsRemaining} min{minsRemaining === 1 ? "" : "s"} left
           </span>
         </div>
 
-        <div className="pt-4 space-y-3">
+        <div className="pt-3.5 space-y-3">
           <div>
-            <p className="text-lg font-bold text-[#1D1D1F]">Walk-in / Counter Hold</p>
-            <p className="text-xs text-[#86868B] mt-0.5">Counter client currently receiving service</p>
+            <h3 className="text-base font-bold text-[#1D1D1F]">
+              {booking.customer_name || "Walk-in / Counter Hold"}
+            </h3>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              Counter client currently receiving service
+            </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 mt-3">
+          <div className="flex flex-col sm:flex-row gap-2 pt-1">
             <button
               onClick={handleCompleted}
               disabled={busy}
-              className="flex-1 bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white font-medium rounded-xl py-2.5 px-4 shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
+              className="flex-1 bg-[#1D1D1F] hover:bg-[#2C2C2E] active:scale-[0.98] text-white font-semibold text-xs rounded-xl py-2.5 px-4 shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <svg className="w-4 h-4 text-[#34C759]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 text-[#34C759]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
               ✓ Mark Completed (+Rs {servicePrice || 300})
@@ -1003,27 +1001,21 @@ function BookingCard({
           (updating ? "opacity-60 pointer-events-none" : "")
         }
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-100">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              IN CHAIR
-            </span>
-            <span className="text-xs font-medium text-[#86868B]">
-              Ends at {formatTimeMU(booking.end_time)} &bull; {minsRemaining} min{minsRemaining === 1 ? "" : "s"} left
-            </span>
-          </div>
-
-          <span className="font-mono font-semibold text-sm text-[#1D1D1F]">
-            <span className="text-xs font-normal text-[#86868B]">Rs </span>{service?.price_mur ?? 0}
+        <div className="flex items-center justify-between gap-3 pb-3.5 border-b border-zinc-100">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold shrink-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            IN CHAIR
+          </span>
+          <span className="text-xs font-medium text-[#86868B] text-right truncate">
+            Ends at {formatTimeMU(booking.end_time)} &bull; {minsRemaining} min{minsRemaining === 1 ? "" : "s"} left
           </span>
         </div>
 
-        <div className="pt-4 space-y-4">
+        <div className="pt-3.5 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-lg font-bold text-[#1D1D1F]">{booking.customer_name}</p>
-              <p className="text-xs text-[#86868B] mt-0.5">
+              <p className="text-base font-bold text-[#1D1D1F]">{booking.customer_name}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">
                 {service?.name ?? "Service"}{staffMember ? ` • Stylist: ${staffMember.name}` : ""}
               </p>
             </div>
@@ -1604,7 +1596,7 @@ export default function DashboardClient({
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4 px-4 py-4 sm:space-y-6 sm:py-8">
+    <div className="mx-auto max-w-3xl space-y-4 px-4 py-4 md:space-y-6 md:py-8">
       {/* ── Dashboard Header ── */}
       <div className="flex items-center justify-between gap-3">
         <div>
@@ -1621,7 +1613,7 @@ export default function DashboardClient({
                   }).format(new Date(selectedDate + "T12:00:00+04:00")).toUpperCase()}
           </p>
           <div className="flex items-center gap-2 mt-0.5">
-            <h1 className="text-2xl font-semibold tracking-tight text-[#1D1D1F] sm:text-3xl">
+            <h1 className="text-2xl font-semibold tracking-tight text-[#1D1D1F] md:text-3xl">
               Bookings
             </h1>
             <span className="text-xs font-semibold text-zinc-400 bg-zinc-100 px-2.5 py-1 rounded-full">
@@ -1694,7 +1686,7 @@ export default function DashboardClient({
       </div>
 
       {/* ── Operational Control: Block 30m / Walk-in ── */}
-      <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <button
             onClick={blockWalkIn}
@@ -1722,7 +1714,7 @@ export default function DashboardClient({
         </div>
 
         {walkInNotice && (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#34C759]/10 text-xs font-semibold text-[#248A3D] border border-[#34C759]/20 self-start sm:self-auto">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#34C759]/10 text-xs font-semibold text-[#248A3D] border border-[#34C759]/20 self-start md:self-auto">
             <span>✓</span>
             <span>{walkInNotice}</span>
           </div>
