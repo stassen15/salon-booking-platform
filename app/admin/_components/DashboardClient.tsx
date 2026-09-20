@@ -696,24 +696,21 @@ function CompletedRow({
   service: ServiceInfo | undefined;
 }) {
   return (
-    <div className="flex items-center justify-between py-2.5 px-4 bg-zinc-50/80 hover:bg-zinc-100/80 rounded-xl border border-zinc-200/50 text-xs transition-colors">
-      <div className="flex items-center gap-3 min-w-0">
+    <div className="flex items-center justify-between py-2 px-3 bg-zinc-50/70 hover:bg-zinc-100/80 rounded-xl border border-zinc-200/50 text-xs transition-colors gap-2">
+      <div className="flex items-center gap-2 min-w-0">
         <span className="font-mono text-zinc-400 shrink-0">
           {formatTimeMU(booking.start_time)} – {formatTimeMU(booking.end_time)}
         </span>
-        <span className="text-zinc-500 font-medium truncate">
+        <span className="text-zinc-700 font-medium shrink-0">
           {service?.name ?? "Service"}
         </span>
+        <span className="text-zinc-400 truncate">
+          · {booking.customer_name}
+        </span>
       </div>
-      <div className="flex items-center gap-2 shrink-0 ml-2">
-        <span className="text-zinc-600 font-medium truncate max-w-[120px] sm:max-w-[160px]">
-          {booking.customer_name}
-        </span>
-        <span className="text-zinc-400">&middot;</span>
-        <span className="font-mono text-zinc-500">Rs {service?.price_mur ?? 0}</span>
-        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold">
-          ✓
-        </span>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <span className="font-mono text-zinc-600">Rs {service?.price_mur ?? 0}</span>
+        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold">✓</span>
       </div>
     </div>
   );
@@ -1197,20 +1194,27 @@ function BookingCard({
                 </button>
 
                 {showActions && (
-                  <div className="absolute right-0 bottom-12 w-52 rounded-2xl border border-zinc-200/70 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.12)] overflow-hidden z-20">
-                    <button
-                      onClick={() => { setShowActions(false); handleStatus("no_show"); }}
-                      className="w-full text-left px-4 py-3 text-sm font-medium text-zinc-800 hover:bg-zinc-50 border-b border-zinc-100 transition-colors"
-                    >
-                      Mark as No-Show
-                    </button>
-                    <button
-                      onClick={() => { setShowActions(false); handleStatus("cancelled"); }}
-                      className="w-full text-left px-4 py-3 text-sm font-medium text-[#FF3B30] hover:bg-red-50 transition-colors"
-                    >
-                      Cancel Appointment
-                    </button>
-                  </div>
+                  <>
+                    {/* Full-screen backdrop — tap anywhere to dismiss */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowActions(false)}
+                    />
+                    <div className="absolute right-0 bottom-12 w-52 rounded-2xl border border-zinc-200/70 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.12)] overflow-hidden z-20 divide-y divide-zinc-100">
+                      <button
+                        onClick={() => { setShowActions(false); handleStatus("no_show"); }}
+                        className="w-full text-left px-4 py-3 text-sm font-medium text-zinc-800 hover:bg-zinc-50 transition-colors"
+                      >
+                        Mark as No-Show
+                      </button>
+                      <button
+                        onClick={() => { setShowActions(false); handleStatus("cancelled"); }}
+                        className="w-full text-left px-4 py-3 text-sm font-medium text-[#FF3B30] hover:bg-red-50 transition-colors"
+                      >
+                        Cancel Appointment
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -1591,29 +1595,24 @@ export default function DashboardClient({
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold tracking-wider uppercase text-[#86868B]">
-            Today at the chair
+            {selectedDate === todayStr
+              ? "Today at the chair"
+              : selectedDate === tomorrowStr
+                ? "Tomorrow's chair"
+                : "Schedule · " + new Intl.DateTimeFormat("en-MU", {
+                    timeZone: "Indian/Mauritius",
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                  }).format(new Date(selectedDate + "T12:00:00+04:00")).toUpperCase()}
           </p>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#1D1D1F] sm:text-3xl">
-            Bookings
-          </h1>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Live Clock: e.g. "17:16 • Grand Baie" */}
-          <div className="rounded-2xl bg-white border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] px-3.5 py-2 text-center">
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#34C759] animate-pulse" />
-              <span className="font-semibold text-sm tracking-tight tabular-nums text-[#1D1D1F]">
-                {clockTime} &bull; {salonName}
-              </span>
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-white border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_16px_rgba(0,0,0,0.03)] px-3.5 py-2 text-right text-xs">
-            <span className="block font-semibold text-[#1D1D1F]">
-              {selectedDate === todayStr ? "Today" : selectedDate}
+          <div className="flex items-center gap-2 mt-0.5">
+            <h1 className="text-2xl font-semibold tracking-tight text-[#1D1D1F] sm:text-3xl">
+              Bookings
+            </h1>
+            <span className="text-xs font-semibold text-zinc-400 bg-zinc-100 px-2.5 py-1 rounded-full">
+              {bookings.length} total
             </span>
-            <span className="text-[#86868B]">{bookings.length} total</span>
           </div>
         </div>
       </div>
