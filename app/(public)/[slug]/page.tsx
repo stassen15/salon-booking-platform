@@ -1,11 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import { format, addDays, isSameDay } from "date-fns";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface ParsedServiceItem {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  cleanDescription: string;
+  duration_minutes: number;
+  price_mur: number;
+  deposit_required_mur: number;
+}
 
 interface SalonCatalog {
   salon: {
@@ -40,6 +51,25 @@ interface SalonCatalog {
     end_time: string;
     is_closed: boolean;
   }[];
+}
+
+function parseServiceItem(srv: SalonCatalog["services"][number]): ParsedServiceItem {
+  let category = (srv as { category?: string }).category || "General";
+  let cleanDescription = srv.description || "";
+
+  if (srv.description) {
+    const match = srv.description.match(/^\[([^\]]+)\]\s*([\s\S]*)$/);
+    if (match) {
+      category = match[1].trim() || category;
+      cleanDescription = match[2].trim();
+    }
+  }
+
+  return {
+    ...srv,
+    category,
+    cleanDescription,
+  };
 }
 
 interface AvailableSlot {
@@ -249,7 +279,7 @@ function ServiceCard({
   selected,
   onSelect,
 }: {
-  service: SalonCatalog["services"][number];
+  service: ParsedServiceItem;
   selected: boolean;
   onSelect: () => void;
 }) {
@@ -264,50 +294,69 @@ function ServiceCard({
           onSelect();
         }
       }}
-      className={`w-full text-left p-4 rounded-2xl transition-all cursor-pointer ${
+      className={`group relative p-5 rounded-2xl border transition-all duration-200 cursor-pointer ${
         selected
-          ? "border-2 border-[#1D1D1F] bg-zinc-50/50 shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
-          : "bg-white border border-zinc-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:border-zinc-300 active:scale-[0.98]"
+          ? "bg-zinc-50/80 border-[#1D1D1F] shadow-[0_4px_20px_rgba(0,0,0,0.06)] ring-1 ring-[#1D1D1F]"
+          : "bg-white border-black/[0.06] hover:border-zinc-300 hover:shadow-[0_4px_16px_rgba(0,0,0,0.03)] active:scale-[0.99]"
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        {/* Left side */}
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm text-[#1D1D1F] leading-snug">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1.5 flex-1 min-w-0">
+          {/* Category Badge & Duration */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-600">
+              {service.category || "General"}
+            </span>
+            <span className="text-zinc-300">·</span>
+            <span className="text-xs font-medium text-zinc-500 inline-flex items-center gap-1 font-mono">
+              <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {service.duration_minutes} min
+            </span>
+          </div>
+
+          {/* Title & Description */}
+          <h3 className="text-base font-bold text-[#1D1D1F] tracking-tight capitalize group-hover:text-black">
             {service.name}
           </h3>
-          {service.description && (
-            <p className="text-xs text-zinc-500 line-clamp-2 mt-0.5 leading-relaxed">
-              {service.description}
+          {service.cleanDescription && (
+            <p className="text-xs text-zinc-500 line-clamp-2 leading-relaxed">
+              {service.cleanDescription}
             </p>
           )}
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-[11px] font-medium text-zinc-400">
-              ⏱ {service.duration_minutes} min
-            </span>
-            {service.deposit_required_mur > 0 && (
-              <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-full">
-                Rs {service.deposit_required_mur} deposit
+
+          {/* Deposit Pill (if enabled) */}
+          {service.deposit_required_mur > 0 && (
+            <div className="pt-1">
+              <span className="inline-flex items-center text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-full">
+                Rs {service.deposit_required_mur} deposit required
               </span>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Right side */}
-        <div className="text-right shrink-0 flex items-center gap-2.5">
-          <div>
-            <span className="text-xs font-normal text-zinc-400">Rs </span>
-            <span className="font-semibold text-base tabular-nums text-[#1D1D1F]">
+        {/* Price & Selection Radio */}
+        <div className="flex flex-col items-end justify-between h-full shrink-0">
+          <div className="text-right">
+            <span className="text-xs font-medium text-zinc-400 mr-1">Rs</span>
+            <span className="font-mono font-bold text-lg text-[#1D1D1F] tracking-tight">
               {service.price_mur}
             </span>
           </div>
-          {selected && (
-            <div className="h-5 w-5 rounded-full bg-[#1D1D1F] text-white flex items-center justify-center shrink-0">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-              </svg>
+          <div className="mt-4">
+            <div
+              className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
+                selected
+                  ? "border-[#1D1D1F] bg-[#1D1D1F]"
+                  : "border-zinc-300 group-hover:border-zinc-400"
+              }`}
+            >
+              {selected && (
+                <div className="w-2 h-2 rounded-full bg-white" />
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
@@ -598,9 +647,8 @@ export default function BookingPage() {
   const [step, setStep] = useState<Step>(1);
 
   // Step 1
-  const [selectedService, setSelectedService] = useState<
-    SalonCatalog["services"][number] | null
-  >(null);
+  const [selectedService, setSelectedService] = useState<ParsedServiceItem | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
   // Step 2
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -732,14 +780,36 @@ export default function BookingPage() {
     /^\+?[0-9]{8,15}$/.test(customerPhone.trim()) &&
     (!depositRequired || juiceRef.trim().length >= 3);
 
+  const parsedServices = useMemo(
+    () => (catalog?.services ?? []).map(parseServiceItem),
+    [catalog?.services]
+  );
+
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    cats.add("All");
+    parsedServices.forEach((s) => {
+      if (s.category) cats.add(s.category);
+    });
+    return Array.from(cats);
+  }, [parsedServices]);
+
+  const filteredServices = useMemo(() => {
+    if (selectedCategory === "All") return parsedServices;
+    return parsedServices.filter(
+      (s) => s.category.toLowerCase() === selectedCategory.toLowerCase()
+    );
+  }, [parsedServices, selectedCategory]);
+
   function resetFlow() {
     setStep(1);
     setSelectedService(null);
+    setSelectedCategory("All");
     setSelectedSlot(null);
     setSelectedStaffId(null);
     setCustomerName("");
-      setCustomerPhone("");
-      setDepositQuote(null);
+    setCustomerPhone("");
+    setDepositQuote(null);
     setJuiceRef("");
     setBooking(null);
   }
@@ -780,7 +850,7 @@ export default function BookingPage() {
     );
   }
 
-  const { salon, services } = catalog;
+  const { salon } = catalog;
   const fullAddress = [salon.address, salon.district].filter(Boolean).join(", ") || salon.address || "Mauritius";
   const monogram =
     salon.name
@@ -898,46 +968,80 @@ export default function BookingPage() {
               </p>
             </div>
 
-            {/* Persistent Appointment Summary */}
+            {/* Dynamic Appointment Docket */}
             <div className="pt-5 border-t border-zinc-100 space-y-3">
               <h3 className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                 Appointment Summary
               </h3>
               {selectedService ? (
-                <div className="space-y-3 text-xs">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-semibold text-sm text-[#1D1D1F]">{selectedService.name}</p>
-                      <p className="text-zinc-500 mt-0.5">⏱ {selectedService.duration_minutes} min</p>
+                <div className="rounded-2xl bg-gradient-to-b from-zinc-50/80 to-zinc-100/50 border border-zinc-200/80 p-4 space-y-3 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 bg-zinc-200/60 px-2 py-0.5 rounded-md">
+                        {selectedService.category || "Service"}
+                      </span>
+                      <h4 className="font-bold text-sm text-[#1D1D1F] mt-1.5 truncate">
+                        {selectedService.name}
+                      </h4>
+                      <p className="text-xs text-zinc-500 mt-0.5 font-mono inline-flex items-center gap-1">
+                        <span>⏱</span> {selectedService.duration_minutes} min
+                      </p>
                     </div>
-                    <p className="font-mono font-bold text-sm text-[#1D1D1F]">Rs {selectedService.price_mur}</p>
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] font-medium text-zinc-400 mr-0.5">Rs</span>
+                      <span className="font-mono font-bold text-base text-[#1D1D1F]">
+                        {selectedService.price_mur}
+                      </span>
+                    </div>
                   </div>
 
                   {selectedSlot ? (
-                    <div className="pt-2.5 border-t border-zinc-100 flex items-center justify-between text-zinc-600">
-                      <span>Time Slot</span>
+                    <div className="pt-2.5 border-t border-zinc-200/60 flex items-center justify-between text-xs">
+                      <span className="text-zinc-500">Appointment</span>
                       <span className="font-semibold text-[#1D1D1F] font-mono">
                         {formatDateLabel(new Date(selectedSlot.start))} · {formatTimeLocal(selectedSlot.start)}
                       </span>
                     </div>
                   ) : (
-                    <p className="text-[11px] text-zinc-400 pt-2 border-t border-zinc-100 italic">
-                      Select date &amp; time in Step 2
-                    </p>
+                    <div className="pt-2.5 border-t border-zinc-200/60 flex items-center justify-between text-[11px] text-zinc-400">
+                      <span>Schedule</span>
+                      <span className="italic">Pick in Step 2</span>
+                    </div>
                   )}
 
-                  {selectedService.deposit_required_mur > 0 && (
-                    <div className="pt-2 flex items-center justify-between text-[11px] text-amber-800 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200/60">
+                  {selectedService.deposit_required_mur > 0 ? (
+                    <div className="pt-2 border-t border-zinc-200/60 flex items-center justify-between text-xs text-amber-800 bg-amber-50/90 -mx-1 px-2.5 py-1.5 rounded-xl border border-amber-200/60">
                       <span className="font-medium">Deposit Required</span>
                       <span className="font-bold font-mono">Rs {depositAmount}</span>
+                    </div>
+                  ) : (
+                    <div className="pt-2 border-t border-zinc-200/60 flex items-center justify-between text-[11px] text-emerald-700">
+                      <span>Deposit</span>
+                      <span className="font-medium">No deposit required</span>
                     </div>
                   )}
                 </div>
               ) : (
-                <p className="text-xs text-zinc-400 py-2">
-                  No service selected yet. Choose a service to begin.
-                </p>
+                <div className="py-7 px-4 bg-zinc-50/70 rounded-2xl border border-dashed border-zinc-200 flex flex-col items-center justify-center text-center">
+                  <div className="w-11 h-11 rounded-2xl bg-white border border-zinc-200/60 shadow-sm flex items-center justify-center text-lg mb-2.5 text-zinc-400">
+                    ✂
+                  </div>
+                  <p className="text-xs font-semibold text-zinc-700">No service selected</p>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">Select a service to start booking</p>
+                </div>
               )}
+            </div>
+
+            {/* Trust & Verification Badges */}
+            <div className="mt-8 pt-6 border-t border-zinc-100 space-y-3">
+              <div className="flex items-center gap-2.5 text-xs text-zinc-500">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span>Instant WhatsApp confirmation</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-xs text-zinc-500">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span>Secure MCB Juice P2P deposit</span>
+              </div>
             </div>
           </div>
         </div>
@@ -960,8 +1064,28 @@ export default function BookingPage() {
                   <p className="text-xs text-[#86868B] mt-0.5">Select what you&apos;d like done today</p>
                 </div>
 
+                {/* Category Filter Tabs at the Top */}
+                {categories.length > 1 && (
+                  <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-1 mb-6">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+                          selectedCategory.toLowerCase() === cat.toLowerCase()
+                            ? "bg-[#1D1D1F] text-white shadow-sm"
+                            : "bg-zinc-100 hover:bg-zinc-200/80 text-zinc-600 border border-transparent"
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <div className="space-y-2.5">
-                  {services.map((service) => (
+                  {filteredServices.map((service) => (
                     <ServiceCard
                       key={service.id}
                       service={service}
