@@ -663,25 +663,27 @@ export default function SettingsClient({
           </div>
         </div>
 
-        {/* ── Apple-Grade Segmented Top Navigation Bar ────────────────────── */}
-        <div className="mt-5 p-1 bg-zinc-200/80 rounded-2xl flex overflow-x-auto gap-1 shadow-inner scrollbar-none">
-          {TABS.map((tab) => {
-            const active = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex-1 ${
-                  active
-                    ? "bg-white text-[#1D1D1F] shadow-[0_2px_8px_rgba(0,0,0,0.06)] scale-[1.01]"
-                    : "text-zinc-600 hover:text-[#1D1D1F] hover:bg-white/40"
-                }`}
-              >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+        {/* ── Touch-Scrollable Segmented Tab Bar (All 5 Tabs Accessible) ──── */}
+        <div className="w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden touch-pan-x -mx-4 px-4 sm:mx-0 sm:px-0 mt-5 mb-1">
+          <div className="inline-flex sm:flex items-center gap-1.5 p-1 bg-zinc-200/60 rounded-2xl w-max sm:w-full min-w-full sm:min-w-0">
+            {TABS.map((tab) => {
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`shrink-0 whitespace-nowrap px-4 py-2 sm:flex-1 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
+                    active
+                      ? "bg-white text-[#1D1D1F] shadow-sm"
+                      : "text-zinc-600 hover:text-zinc-900 hover:bg-white/40"
+                  }`}
+                >
+                  <span>{tab.icon}</span>
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -695,18 +697,23 @@ export default function SettingsClient({
             {/* Decoupled Header & Category Filter Bar */}
             <div className="space-y-4">
               {/* Tier 1: Section Header Row with Catalog Title & Actions */}
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="text-lg font-bold text-[#1D1D1F]">
-                  Services Menu{" "}
-                  <span className="text-xs font-semibold text-zinc-400 font-mono ml-1.5">
+              <div className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between mb-4">
+                {/* Section Title */}
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-bold text-[#1D1D1F]">
+                    Services Menu
+                  </h2>
+                  <span className="text-xs font-semibold text-zinc-400 font-mono">
                     ({services.length})
                   </span>
-                </h2>
-                <div className="flex items-center gap-2">
+                </div>
+
+                {/* Action Buttons: 2-column grid on mobile, inline-flex on desktop */}
+                <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setShowAddCatModal(true)}
-                    className="h-8 px-3 rounded-xl border border-zinc-200/80 bg-white text-xs font-semibold text-zinc-700 hover:bg-zinc-50 active:scale-[0.98] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+                    className="h-9 px-3 rounded-xl border border-zinc-200/90 bg-white text-xs font-semibold text-zinc-700 hover:bg-zinc-50 active:scale-[0.98] transition-all flex items-center justify-center whitespace-nowrap shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                   >
                     + Category
                   </button>
@@ -728,64 +735,66 @@ export default function SettingsClient({
                       });
                       setIsNewServiceModalOpen(true);
                     }}
-                    className="h-8 px-3.5 rounded-xl bg-[#1D1D1F] text-white text-xs font-semibold hover:bg-black active:scale-[0.98] transition-all shadow-sm"
+                    className="h-9 px-3.5 rounded-xl bg-[#1D1D1F] text-white text-xs font-semibold hover:bg-black active:scale-[0.98] transition-all flex items-center justify-center whitespace-nowrap shadow-sm"
                   >
                     + Add Service
                   </button>
                 </div>
               </div>
 
-              {/* Tier 2: Dedicated Category Filter Bar (No Desktop Clipping / Trap) */}
+              {/* Tier 2: Edge-to-Edge Sub-Category Filter Strip */}
               <div
                 onWheel={(e) => {
                   if (e.deltaY !== 0 && window.innerWidth < 768) {
                     e.currentTarget.scrollLeft += e.deltaY;
                   }
                 }}
-                className="flex items-center gap-2 overflow-x-auto md:flex-wrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-1 mb-6"
+                className="w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden touch-pan-x -mx-4 px-4 sm:mx-0 sm:px-0 py-1 mb-5"
               >
-                {categoriesWithCounts.map((cat) => {
-                  const isSelected = selectedCategory.toLowerCase() === cat.id.toLowerCase();
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => setSelectedCategory(cat.id)}
-                      onContextMenu={(e) => {
-                        if (cat.id !== "All") {
-                          e.preventDefault();
-                          handleDeleteCategory(cat.id);
-                        }
-                      }}
-                      className={`group shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all inline-flex items-center gap-1 ${
-                        isSelected
-                          ? "bg-[#1D1D1F] text-white shadow-sm"
-                          : "bg-white border border-zinc-200/80 text-zinc-600 hover:border-zinc-300"
-                      }`}
-                    >
-                      <span>
-                        {cat.name} ({cat.count})
-                      </span>
-                      {cat.id !== "All" && (
-                        <span
-                          role="button"
-                          title={`Delete "${cat.name}" category`}
-                          onClick={(e) => {
-                            e.stopPropagation();
+                <div className="flex items-center gap-2 pr-6 sm:pr-0 w-max md:w-full md:flex-wrap">
+                  {categoriesWithCounts.map((cat) => {
+                    const isSelected = selectedCategory.toLowerCase() === cat.id.toLowerCase();
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setSelectedCategory(cat.id)}
+                        onContextMenu={(e) => {
+                          if (cat.id !== "All") {
+                            e.preventDefault();
                             handleDeleteCategory(cat.id);
-                          }}
-                          className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px] font-bold transition-all ${
-                            isSelected
-                              ? "text-white/60 hover:text-white hover:bg-white/20"
-                              : "text-zinc-400 hover:text-rose-600 hover:bg-rose-50 opacity-60 group-hover:opacity-100"
-                          }`}
-                        >
-                          ✕
+                          }
+                        }}
+                        className={`group shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all inline-flex items-center gap-1 ${
+                          isSelected
+                            ? "bg-[#1D1D1F] text-white shadow-sm"
+                            : "bg-white border border-zinc-200/80 text-zinc-600 hover:border-zinc-300"
+                        }`}
+                      >
+                        <span>
+                          {cat.name} ({cat.count})
                         </span>
-                      )}
-                    </button>
-                  );
-                })}
+                        {cat.id !== "All" && (
+                          <span
+                            role="button"
+                            title={`Delete "${cat.name}" category`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteCategory(cat.id);
+                            }}
+                            className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px] font-bold transition-all ${
+                              isSelected
+                                ? "text-white/60 hover:text-white hover:bg-white/20"
+                                : "text-zinc-400 hover:text-rose-600 hover:bg-rose-50 opacity-60 group-hover:opacity-100"
+                            }`}
+                          >
+                            ✕
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -799,7 +808,7 @@ export default function SettingsClient({
                 return (
                   <div
                     key={service.id}
-                    className={`bg-white rounded-3xl border p-5 transition-all shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col justify-between ${
+                    className={`bg-white rounded-3xl border p-4 sm:p-5 transition-all shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col justify-between ${
                       service.is_active
                         ? "border-zinc-200/80 hover:border-zinc-300"
                         : "border-zinc-200/50 opacity-60 grayscale-[20%] bg-zinc-50/50"
