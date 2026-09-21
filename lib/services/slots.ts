@@ -209,6 +209,15 @@ export async function getAvailableSlots(
     }
   }
 
+  // Exclude daily lunch break window (12:30 – 13:30) strictly without modifying working_hours
+  const lunchStart = mauritiusDateTimeToUtc(input.date, "12:30");
+  const lunchEnd = mauritiusDateTimeToUtc(input.date, "13:30");
+  for (const staffId of effectiveStaffIds) {
+    const list = busyByStaff.get(staffId) ?? [];
+    list.push({ start: lunchStart, end: lunchEnd });
+    busyByStaff.set(staffId, list);
+  }
+
   const now = new Date();
   const results: StaffSlotResult[] = staffList.map((member) => {
     const windows = resolveWindowsForStaff(hours, member.id).sort(

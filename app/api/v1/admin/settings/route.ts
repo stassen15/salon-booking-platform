@@ -313,10 +313,31 @@ export async function POST(request: Request) {
       return jsonOk({ success: true });
     }
 
+    case "delete_staff": {
+      const { staffId } = payload as { staffId?: string };
+      if (!staffId) return jsonError("Staff ID required", 400);
+
+      const { error } = await supabase
+        .from("staff")
+        .delete()
+        .eq("id", staffId)
+        .eq("salon_id", salonId);
+
+      if (error) {
+        // If foreign key constraint prevents deletion (e.g. historical bookings), soft-deactivate
+        const { error: softError } = await supabase
+          .from("staff")
+          .update({ is_active: false })
+          .eq("id", staffId)
+          .eq("salon_id", salonId);
+        if (softError) return jsonError("Failed to remove staff member", 400, softError.message);
+      }
+      return jsonOk({ success: true });
+    }
+
     case "save_hours": {
-      const { hours, breakWindow } = payload as {
+      const { hours } = payload as {
         hours?: { dayOfWeek: number; startTime: string; endTime: string; isClosed: boolean }[];
-        breakWindow?: { enabled?: boolean; startTime?: string; endTime?: string };
       };
       if (!Array.isArray(hours)) return jsonError("Hours array required", 400);
 
@@ -333,54 +354,14 @@ export async function POST(request: Request) {
       };
       const hoursToInsert: InsertHour[] = [];
       for (const h of hours) {
-        if (h.isClosed) {
-          hoursToInsert.push({
-            salon_id: salonId,
-            staff_id: null,
-            day_of_week: h.dayOfWeek,
-            start_time: "09:00",
-            end_time: "18:00",
-            is_closed: true,
-          });
-        } else if (breakWindow?.enabled && breakWindow.startTime && breakWindow.endTime) {
-          // If break falls inside operating window, split into two windows
-          if (h.startTime < breakWindow.startTime && breakWindow.endTime < h.endTime) {
-            hoursToInsert.push({
-              salon_id: salonId,
-              staff_id: null,
-              day_of_week: h.dayOfWeek,
-              start_time: h.startTime,
-              end_time: breakWindow.startTime,
-              is_closed: false,
-            });
-            hoursToInsert.push({
-              salon_id: salonId,
-              staff_id: null,
-              day_of_week: h.dayOfWeek,
-              start_time: breakWindow.endTime,
-              end_time: h.endTime,
-              is_closed: false,
-            });
-          } else {
-            hoursToInsert.push({
-              salon_id: salonId,
-              staff_id: null,
-              day_of_week: h.dayOfWeek,
-              start_time: h.startTime,
-              end_time: h.endTime,
-              is_closed: false,
-            });
-          }
-        } else {
-          hoursToInsert.push({
-            salon_id: salonId,
-            staff_id: null,
-            day_of_week: h.dayOfWeek,
-            start_time: h.startTime,
-            end_time: h.endTime,
-            is_closed: false,
-          });
-        }
+        hoursToInsert.push({
+          salon_id: salonId,
+          staff_id: null,
+          day_of_week: h.dayOfWeek,
+          start_time: h.startTime || "09:00",
+          end_time: h.endTime || "18:00",
+          is_closed: !!h.isClosed,
+        });
       }
 
       const { error } = await supabase.from("working_hours").insert(hoursToInsert);
