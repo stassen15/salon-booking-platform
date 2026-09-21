@@ -307,7 +307,7 @@ function ServiceCard({
             <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-600">
               {service.category || "General"}
             </span>
-            <span className="text-zinc-300">·</span>
+            <span className="text-zinc-300 text-xs">·</span>
             <span className="text-xs font-medium text-zinc-500 inline-flex items-center gap-1 font-mono">
               <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -337,25 +337,23 @@ function ServiceCard({
         </div>
 
         {/* Price & Selection Radio */}
-        <div className="flex flex-col items-end justify-between h-full shrink-0">
+        <div className="flex flex-col items-end justify-center gap-3 shrink-0 self-center">
           <div className="text-right">
             <span className="text-xs font-medium text-zinc-400 mr-1">Rs</span>
             <span className="font-mono font-bold text-lg text-[#1D1D1F] tracking-tight">
               {service.price_mur}
             </span>
           </div>
-          <div className="mt-4">
-            <div
-              className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
-                selected
-                  ? "border-[#1D1D1F] bg-[#1D1D1F]"
-                  : "border-zinc-300 group-hover:border-zinc-400"
-              }`}
-            >
-              {selected && (
-                <div className="w-2 h-2 rounded-full bg-white" />
-              )}
-            </div>
+          <div
+            className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
+              selected
+                ? "border-[#1D1D1F] bg-[#1D1D1F]"
+                : "border-zinc-300 group-hover:border-zinc-400"
+            }`}
+          >
+            {selected && (
+              <div className="w-2 h-2 rounded-full bg-white" />
+            )}
           </div>
         </div>
       </div>
@@ -786,19 +784,35 @@ export default function BookingPage() {
   );
 
   const categories = useMemo(() => {
-    const cats = new Set<string>();
-    cats.add("All");
+    const specificCats = new Set<string>();
+    let hasGeneral = false;
+
     parsedServices.forEach((s) => {
-      if (s.category) cats.add(s.category);
+      const cat = s.category?.trim();
+      if (!cat || cat.toLowerCase() === "general" || cat.toLowerCase() === "uncategorized") {
+        hasGeneral = true;
+      } else {
+        specificCats.add(cat);
+      }
     });
-    return Array.from(cats);
+
+    const result = ["All", ...Array.from(specificCats)];
+    if (hasGeneral) {
+      result.push("General");
+    }
+    return result;
   }, [parsedServices]);
 
   const filteredServices = useMemo(() => {
     if (selectedCategory === "All") return parsedServices;
-    return parsedServices.filter(
-      (s) => s.category.toLowerCase() === selectedCategory.toLowerCase()
-    );
+    return parsedServices.filter((s) => {
+      const cat = (s.category || "General").trim().toLowerCase();
+      const sel = selectedCategory.trim().toLowerCase();
+      if (sel === "general") {
+        return cat === "general" || cat === "uncategorized" || !s.category;
+      }
+      return cat === sel;
+    });
   }, [parsedServices, selectedCategory]);
 
   function resetFlow() {
