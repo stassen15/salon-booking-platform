@@ -354,6 +354,17 @@ export default function SettingsClient({
     triggerSavedToast(nextState ? "Service activated" : "Service paused");
   }
 
+  async function handleDeleteService(serviceId: string) {
+    if (!confirm("Are you sure you want to delete this service?")) return;
+    startTransition(async () => {
+      await callSettingsApi("delete_service", { serviceId });
+      setServices((prev) => prev.filter((s) => s.id !== serviceId));
+      setEditingService(null);
+      setIsNewServiceModalOpen(false);
+      triggerSavedToast("Service deleted");
+    });
+  }
+
   // ── Team & Staff Actions ──────────────────────────────────────────────
   async function handleToggleStaffActive(staffId: string, currentActive: boolean) {
     const nextState = !currentActive;
@@ -625,17 +636,18 @@ export default function SettingsClient({
         {/* ================================================================= */}
         {activeTab === "services" && (
           <div className="space-y-6 animate-fade-in">
-            {/* Decoupled Category Filter Strip & Fixed Action Buttons (Fix 1) */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-              {/* Left: Scrollable Category Filter Pills */}
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+            {/* Unified Category Filter Strip & Fixed Action Buttons */}
+            <div className="flex items-center justify-between gap-4 mb-6">
+              {/* Left: Horizontally Scrollable Category Pills with hidden scrollbar */}
+              <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-1 min-w-0 flex-1">
                 {categoriesWithCounts.map((cat) => {
                   const isSelected = selectedCategory.toLowerCase() === cat.id.toLowerCase();
                   return (
                     <button
                       key={cat.id}
+                      type="button"
                       onClick={() => setSelectedCategory(cat.id)}
-                      className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                      className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold transition-all ${
                         isSelected
                           ? "bg-[#1D1D1F] text-white shadow-sm"
                           : "bg-white border border-zinc-200/80 text-zinc-600 hover:border-zinc-300"
@@ -650,12 +662,14 @@ export default function SettingsClient({
               {/* Right: Fixed Action Buttons */}
               <div className="flex items-center gap-2 shrink-0">
                 <button
+                  type="button"
                   onClick={() => setShowAddCatModal(true)}
-                  className="px-3 py-1.5 rounded-xl border border-zinc-200 bg-white text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-all"
+                  className="h-9 px-3.5 rounded-xl border border-zinc-200/80 bg-white text-xs font-semibold text-zinc-700 hover:bg-zinc-50 active:scale-[0.98] transition-all"
                 >
                   + Category
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     setEditingService({
                       id: "",
@@ -672,7 +686,7 @@ export default function SettingsClient({
                     });
                     setIsNewServiceModalOpen(true);
                   }}
-                  className="px-3.5 py-1.5 rounded-xl bg-[#1D1D1F] text-white text-xs font-semibold hover:bg-black transition-all shadow-sm"
+                  className="h-9 px-4 rounded-xl bg-[#1D1D1F] text-white text-xs font-semibold hover:bg-black active:scale-[0.98] transition-all shadow-sm"
                 >
                   + Add Service
                 </button>
@@ -1746,7 +1760,7 @@ export default function SettingsClient({
               <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
                 Stylist Assignment (Who performs this?)
               </label>
-              <div className="space-y-1.5 max-h-32 overflow-y-auto p-2 bg-zinc-50 rounded-xl border border-zinc-200">
+              <div className="space-y-1.5 max-h-32 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden p-2 bg-zinc-50 rounded-xl border border-zinc-200">
                 {staff.map((member) => {
                   const isChecked = editingService.assignedStaffIds.includes(
                     member.id
@@ -1780,21 +1794,34 @@ export default function SettingsClient({
             </div>
 
             {/* Action Buttons */}
-            <div className="pt-2 flex items-center justify-end gap-2 border-t border-zinc-100">
-              <button
-                type="button"
-                onClick={() => setIsNewServiceModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-600 hover:bg-zinc-100"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSaveService(editingService)}
-                className="px-5 py-2 rounded-xl text-xs font-semibold bg-[#1D1D1F] text-white hover:bg-black transition shadow-sm"
-              >
-                Save Service
-              </button>
+            <div className="flex items-center justify-between pt-4 mt-6 border-t border-zinc-100">
+              {editingService.id ? (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteService(editingService.id)}
+                  className="text-xs font-semibold text-rose-600 hover:text-rose-700 transition-colors"
+                >
+                  Delete Service
+                </button>
+              ) : (
+                <span />
+              )}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsNewServiceModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-600 hover:bg-zinc-100 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSaveService(editingService)}
+                  className="px-5 py-2 rounded-xl bg-[#1D1D1F] text-white text-xs font-semibold hover:bg-black active:scale-[0.98] transition-all shadow-sm"
+                >
+                  Save Service
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1906,7 +1933,7 @@ export default function SettingsClient({
               <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
                 Assigned Services (Who performs what)
               </label>
-              <div className="space-y-1.5 max-h-36 overflow-y-auto p-2.5 bg-zinc-50 rounded-xl border border-zinc-200">
+              <div className="space-y-1.5 max-h-36 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden p-2.5 bg-zinc-50 rounded-xl border border-zinc-200">
                 {services.map((srv) => {
                   const isChecked = staffAssignedServices.includes(srv.id);
                   return (
