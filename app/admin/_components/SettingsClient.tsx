@@ -1151,26 +1151,60 @@ export default function SettingsClient({
 
                 <div className="flex items-center gap-3 shrink-0 self-start sm:self-auto">
                   {breakWindow.enabled && (
-                    <div className="flex items-center gap-1.5 text-xs bg-white border border-zinc-200/80 rounded-xl px-2.5 py-1 shadow-sm">
-                      <span className="text-[11px] font-medium text-zinc-400">From</span>
-                      <input
-                        type="time"
-                        value={breakWindow.startTime}
-                        onChange={(e) =>
-                          setBreakWindow((prev) => ({ ...prev, startTime: e.target.value }))
-                        }
-                        className="bg-transparent font-mono text-xs font-semibold text-zinc-800 outline-none"
-                      />
+                    <div className="flex items-center gap-2 text-xs">
+                      {/* From Pill */}
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-zinc-100/80 border border-zinc-200/80 rounded-xl transition-all cursor-pointer relative group shadow-sm">
+                        <span className="text-[11px] font-medium text-zinc-400 select-none">From</span>
+                        <input
+                          type="time"
+                          value={breakWindow.startTime}
+                          onClick={(e) => {
+                            try {
+                              e.currentTarget.showPicker();
+                            } catch {}
+                          }}
+                          onChange={(e) =>
+                            setBreakWindow((prev) => ({ ...prev, startTime: e.target.value }))
+                          }
+                          className="w-16 bg-transparent font-mono font-semibold text-xs text-[#1D1D1F] outline-none cursor-pointer text-center relative z-10 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        />
+                        <svg
+                          className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-700 transition-colors pointer-events-none"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+
                       <span className="text-zinc-300 font-semibold">→</span>
-                      <span className="text-[11px] font-medium text-zinc-400">To</span>
-                      <input
-                        type="time"
-                        value={breakWindow.endTime}
-                        onChange={(e) =>
-                          setBreakWindow((prev) => ({ ...prev, endTime: e.target.value }))
-                        }
-                        className="bg-transparent font-mono text-xs font-semibold text-zinc-800 outline-none"
-                      />
+
+                      {/* To Pill */}
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-zinc-100/80 border border-zinc-200/80 rounded-xl transition-all cursor-pointer relative group shadow-sm">
+                        <span className="text-[11px] font-medium text-zinc-400 select-none">To</span>
+                        <input
+                          type="time"
+                          value={breakWindow.endTime}
+                          onClick={(e) => {
+                            try {
+                              e.currentTarget.showPicker();
+                            } catch {}
+                          }}
+                          onChange={(e) =>
+                            setBreakWindow((prev) => ({ ...prev, endTime: e.target.value }))
+                          }
+                          className="w-16 bg-transparent font-mono font-semibold text-xs text-[#1D1D1F] outline-none cursor-pointer text-center relative z-10 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        />
+                        <svg
+                          className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-700 transition-colors pointer-events-none"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
                     </div>
                   )}
 
@@ -1205,34 +1239,84 @@ export default function SettingsClient({
                       {DAYS_OF_WEEK[hour.day_of_week]}
                     </div>
 
-                    <div className="flex items-center gap-2 flex-1 max-w-xs">
-                      <input
-                        type="time"
-                        value={hour.start_time}
-                        disabled={hour.is_closed}
-                        onChange={(e) =>
-                          setHours((prev) =>
-                            prev.map((h, i) =>
-                              i === idx ? { ...h, start_time: e.target.value } : h
+                    <div className="flex items-center gap-2 flex-1 max-w-sm">
+                      {/* Start Time Pill */}
+                      <div
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all relative group ${
+                          hour.is_closed
+                            ? "bg-zinc-50 border-zinc-200/50 opacity-40 cursor-not-allowed"
+                            : "bg-zinc-50 hover:bg-zinc-100/80 border-zinc-200/80 cursor-pointer"
+                        }`}
+                      >
+                        <input
+                          type="time"
+                          value={hour.start_time}
+                          disabled={hour.is_closed}
+                          onClick={(e) => {
+                            if (!hour.is_closed) {
+                              try {
+                                e.currentTarget.showPicker();
+                              } catch {}
+                            }
+                          }}
+                          onChange={(e) =>
+                            setHours((prev) =>
+                              prev.map((h, i) =>
+                                i === idx ? { ...h, start_time: e.target.value } : h
+                              )
                             )
-                          )
-                        }
-                        className="px-3 py-1.5 font-mono bg-zinc-50 border border-zinc-200 rounded-xl outline-none disabled:opacity-40"
-                      />
+                          }
+                          className="w-16 bg-transparent font-mono font-semibold text-xs text-[#1D1D1F] outline-none cursor-pointer text-center relative z-10 disabled:cursor-not-allowed [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        />
+                        <svg
+                          className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-700 transition-colors pointer-events-none"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+
                       <span className="text-zinc-400 font-semibold">→</span>
-                      <input
-                        type="time"
-                        value={hour.end_time}
-                        disabled={hour.is_closed}
-                        onChange={(e) =>
-                          setHours((prev) =>
-                            prev.map((h, i) =>
-                              i === idx ? { ...h, end_time: e.target.value } : h
+
+                      {/* End Time Pill */}
+                      <div
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all relative group ${
+                          hour.is_closed
+                            ? "bg-zinc-50 border-zinc-200/50 opacity-40 cursor-not-allowed"
+                            : "bg-zinc-50 hover:bg-zinc-100/80 border-zinc-200/80 cursor-pointer"
+                        }`}
+                      >
+                        <input
+                          type="time"
+                          value={hour.end_time}
+                          disabled={hour.is_closed}
+                          onClick={(e) => {
+                            if (!hour.is_closed) {
+                              try {
+                                e.currentTarget.showPicker();
+                              } catch {}
+                            }
+                          }}
+                          onChange={(e) =>
+                            setHours((prev) =>
+                              prev.map((h, i) =>
+                                i === idx ? { ...h, end_time: e.target.value } : h
+                              )
                             )
-                          )
-                        }
-                        className="px-3 py-1.5 font-mono bg-zinc-50 border border-zinc-200 rounded-xl outline-none disabled:opacity-40"
-                      />
+                          }
+                          className="w-16 bg-transparent font-mono font-semibold text-xs text-[#1D1D1F] outline-none cursor-pointer text-center relative z-10 disabled:cursor-not-allowed [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        />
+                        <svg
+                          className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-700 transition-colors pointer-events-none"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
                     </div>
 
                     {/* Open/Closed Toggle */}
