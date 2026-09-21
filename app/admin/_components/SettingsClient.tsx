@@ -636,10 +636,58 @@ export default function SettingsClient({
         {/* ================================================================= */}
         {activeTab === "services" && (
           <div className="space-y-6 animate-fade-in">
-            {/* Unified Category Filter Strip & Fixed Action Buttons */}
-            <div className="flex items-center justify-between gap-4 mb-6">
-              {/* Left: Horizontally Scrollable Category Pills with hidden scrollbar */}
-              <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-1 min-w-0 flex-1">
+            {/* Decoupled Header & Category Filter Bar */}
+            <div className="space-y-4">
+              {/* Tier 1: Section Header Row with Catalog Title & Actions */}
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="text-lg font-bold text-[#1D1D1F]">
+                  Services Menu{" "}
+                  <span className="text-xs font-semibold text-zinc-400 font-mono ml-1.5">
+                    ({services.length})
+                  </span>
+                </h2>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCatModal(true)}
+                    className="h-8 px-3 rounded-xl border border-zinc-200/80 bg-white text-xs font-semibold text-zinc-700 hover:bg-zinc-50 active:scale-[0.98] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+                  >
+                    + Category
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingService({
+                        id: "",
+                        salon_id: initialSalon.id,
+                        name: "",
+                        category: selectedCategory === "All" ? "Men" : selectedCategory,
+                        cleanDescription: "",
+                        description: "",
+                        duration_minutes: 30,
+                        price_mur: 500,
+                        deposit_required_mur: 0,
+                        is_active: true,
+                        assignedStaffIds: staff.map((s) => s.id),
+                      });
+                      setIsNewServiceModalOpen(true);
+                    }}
+                    className="h-8 px-3.5 rounded-xl bg-[#1D1D1F] text-white text-xs font-semibold hover:bg-black active:scale-[0.98] transition-all shadow-sm"
+                  >
+                    + Add Service
+                  </button>
+                </div>
+              </div>
+
+              {/* Tier 2: Dedicated Category Filter Bar (No Desktop Clipping / Trap) */}
+              <div
+                onWheel={(e) => {
+                  if (e.deltaY !== 0 && window.innerWidth < 768) {
+                    e.currentTarget.scrollLeft += e.deltaY;
+                  }
+                }}
+                className="flex items-center gap-2 overflow-x-auto md:flex-wrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-1 mb-6"
+              >
                 {categoriesWithCounts.map((cat) => {
                   const isSelected = selectedCategory.toLowerCase() === cat.id.toLowerCase();
                   return (
@@ -647,7 +695,7 @@ export default function SettingsClient({
                       key={cat.id}
                       type="button"
                       onClick={() => setSelectedCategory(cat.id)}
-                      className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+                      className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
                         isSelected
                           ? "bg-[#1D1D1F] text-white shadow-sm"
                           : "bg-white border border-zinc-200/80 text-zinc-600 hover:border-zinc-300"
@@ -658,43 +706,10 @@ export default function SettingsClient({
                   );
                 })}
               </div>
-
-              {/* Right: Fixed Action Buttons */}
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setShowAddCatModal(true)}
-                  className="h-9 px-3.5 rounded-xl border border-zinc-200/80 bg-white text-xs font-semibold text-zinc-700 hover:bg-zinc-50 active:scale-[0.98] transition-all"
-                >
-                  + Category
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingService({
-                      id: "",
-                      salon_id: initialSalon.id,
-                      name: "",
-                      category: selectedCategory === "All" ? "Men" : selectedCategory,
-                      cleanDescription: "",
-                      description: "",
-                      duration_minutes: 30,
-                      price_mur: 500,
-                      deposit_required_mur: 0,
-                      is_active: true,
-                      assignedStaffIds: staff.map((s) => s.id),
-                    });
-                    setIsNewServiceModalOpen(true);
-                  }}
-                  className="h-9 px-4 rounded-xl bg-[#1D1D1F] text-white text-xs font-semibold hover:bg-black active:scale-[0.98] transition-all shadow-sm"
-                >
-                  + Add Service
-                </button>
-              </div>
             </div>
 
             {/* Service Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredServices.map((service) => {
                 const assignedStaff = staff.filter((s) =>
                   service.assignedStaffIds.includes(s.id)
