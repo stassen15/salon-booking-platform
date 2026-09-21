@@ -294,10 +294,10 @@ function ServiceCard({
           onSelect();
         }
       }}
-      className={`group relative p-5 rounded-2xl border transition-all duration-200 cursor-pointer ${
+      className={`group relative p-5 rounded-2xl transition-all duration-200 cursor-pointer ${
         selected
-          ? "bg-zinc-50/80 border-[#1D1D1F] shadow-[0_4px_20px_rgba(0,0,0,0.06)] ring-1 ring-[#1D1D1F]"
-          : "bg-white border-black/[0.06] hover:border-zinc-300 hover:shadow-[0_4px_16px_rgba(0,0,0,0.03)] active:scale-[0.99]"
+          ? "border-2 border-[#1D1D1F] bg-zinc-50/40 shadow-[0_4px_24px_rgba(0,0,0,0.06)]"
+          : "border-2 border-black/[0.06] bg-white hover:border-zinc-300 hover:shadow-[0_4px_16px_rgba(0,0,0,0.03)] active:scale-[0.99]"
       }`}
     >
       <div className="flex items-start justify-between gap-4">
@@ -317,7 +317,7 @@ function ServiceCard({
           </div>
 
           {/* Title & Description */}
-          <h3 className="text-base font-bold text-[#1D1D1F] tracking-tight capitalize group-hover:text-black">
+          <h3 className="capitalize font-bold text-base text-[#1D1D1F] tracking-tight group-hover:text-black">
             {service.name}
           </h3>
           {service.cleanDescription && (
@@ -994,7 +994,7 @@ export default function BookingPage() {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 bg-zinc-200/60 px-2 py-0.5 rounded-md">
                         {selectedService.category || "Service"}
                       </span>
-                      <h4 className="font-bold text-sm text-[#1D1D1F] mt-1.5 truncate">
+                      <h4 className="capitalize font-bold text-sm text-[#1D1D1F] mt-1.5 truncate">
                         {selectedService.name}
                       </h4>
                       <p className="text-xs text-zinc-500 mt-0.5 font-mono inline-flex items-center gap-1">
@@ -1117,7 +1117,7 @@ export default function BookingPage() {
                 <div className="mb-4">
                   <h2 className="text-lg font-bold tracking-tight text-[#1D1D1F]">Pick a Date &amp; Time</h2>
                   <p className="text-xs text-[#86868B] mt-0.5">
-                    {selectedService?.name} &bull; {selectedService?.duration_minutes} min
+                    <span className="capitalize">{selectedService?.name}</span> &bull; {selectedService?.duration_minutes} min
                   </p>
                 </div>
 
@@ -1217,7 +1217,7 @@ export default function BookingPage() {
                 {selectedService && selectedSlot && (
                   <div className="bg-[#1D1D1F] text-white rounded-2xl p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)] flex items-center justify-between mb-5">
                     <div className="min-w-0">
-                      <p className="font-semibold text-sm truncate">{selectedService.name}</p>
+                      <p className="capitalize font-semibold text-sm truncate">{selectedService.name}</p>
                       <p className="text-zinc-300 text-xs mt-0.5">
                         {formatDateLabel(new Date(selectedSlot.start))} &bull; {formatTimeLocal(selectedSlot.start)}
                       </p>
@@ -1371,7 +1371,7 @@ export default function BookingPage() {
                 onClick={() => setStep(2)}
                 className="w-full h-12 rounded-xl font-medium text-sm transition-all inline-flex items-center justify-between px-4 bg-[#1D1D1F] hover:bg-black active:scale-[0.98] text-white shadow-sm"
               >
-                <span className="truncate">Continue with {selectedService.name}</span>
+                <span className="truncate">Continue with <span className="capitalize">{selectedService.name}</span></span>
                 <span className="shrink-0 ml-2 font-mono">Rs {selectedService.price_mur} &rarr;</span>
               </button>
             ) : (
