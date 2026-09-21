@@ -921,8 +921,14 @@ export default function BookingPage() {
               {/* Service & Stylist Row */}
               <div className="flex items-center justify-between py-2.5">
                 <span className="text-xs text-zinc-400">Service</span>
-                <span className="text-xs font-semibold text-[#1D1D1F] capitalize text-right">
-                  {confirmedBooking.service_name || serviceName} {confirmedBooking.stylist_name || stylistName ? `· with ${confirmedBooking.stylist_name || stylistName}` : ""}
+                <span className="text-xs font-semibold text-[#1D1D1F] text-right">
+                  <span className="capitalize">{confirmedBooking.service_name || serviceName}</span>
+                  {(confirmedBooking.stylist_name || stylistName) && (
+                    <>
+                      {" · with "}
+                      <span className="capitalize">{confirmedBooking.stylist_name || stylistName}</span>
+                    </>
+                  )}
                 </span>
               </div>
 
