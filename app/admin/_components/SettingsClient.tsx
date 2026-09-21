@@ -153,6 +153,7 @@ export default function SettingsClient({
   const [services, setServices] = useState<ServiceItem[]>(initialServices);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [removedCategories, setRemovedCategories] = useState<string[]>([]);
   const [newCatInput, setNewCatInput] = useState("");
   const [showAddCatModal, setShowAddCatModal] = useState(false);
 
@@ -168,8 +169,13 @@ export default function SettingsClient({
         ...customCategories,
         ...services.map((s) => s.category).filter(Boolean),
       ])
+    ).filter(
+      (cat) =>
+        !removedCategories.some(
+          (c) => c.toLowerCase() === cat.toLowerCase()
+        )
     );
-  }, [customCategories, services]);
+  }, [customCategories, services, removedCategories]);
 
   // Categories list with counts for pills
   const categoriesWithCounts = useMemo(() => {
@@ -228,11 +234,15 @@ export default function SettingsClient({
   });
 
   const [hours, setHours] = useState<WorkingHourItem[]>(normalizedHours);
-  const breakWindow = {
+  const [breakWindow, setBreakWindow] = useState<{
+    enabled: boolean;
+    startTime: string;
+    endTime: string;
+  }>({
     enabled: true,
     startTime: "12:30",
     endTime: "13:30",
-  };
+  });
   const [isEmergencyPaused, setIsEmergencyPaused] = useState(initialIsEmergencyPaused);
   const [closures, setClosures] = useState<SalonClosureItem[]>(initialClosures);
   const [newClosureDate, setNewClosureDate] = useState("");
@@ -363,6 +373,46 @@ export default function SettingsClient({
       setIsNewServiceModalOpen(false);
       triggerSavedToast("Service deleted");
     });
+  }
+
+  function handleDeleteCategory(catName: string) {
+    const count = services.filter(
+      (s) => s.category.toLowerCase() === catName.toLowerCase()
+    ).length;
+
+    if (count > 0) {
+      if (
+        !confirm(
+          `Category "${catName}" has ${count} service(s) assigned. Removing it will move those services to "General". Proceed?`
+        )
+      ) {
+        return;
+      }
+      const affectedServices = services.filter(
+        (s) => s.category.toLowerCase() === catName.toLowerCase()
+      );
+      setServices((prev) =>
+        prev.map((s) =>
+          s.category.toLowerCase() === catName.toLowerCase()
+            ? { ...s, category: "General" }
+            : s
+        )
+      );
+      startTransition(async () => {
+        for (const s of affectedServices) {
+          await callSettingsApi("save_service", { ...s, category: "General" });
+        }
+      });
+    }
+
+    setRemovedCategories((prev) => [...prev, catName]);
+    setCustomCategories((prev) =>
+      prev.filter((c) => c.toLowerCase() !== catName.toLowerCase())
+    );
+    if (selectedCategory.toLowerCase() === catName.toLowerCase()) {
+      setSelectedCategory("All");
+    }
+    triggerSavedToast(`Category "${catName}" removed`);
   }
 
   // ── Team & Staff Actions ──────────────────────────────────────────────
@@ -598,12 +648,18 @@ export default function SettingsClient({
             </p>
           </div>
 
-          {/* Quick link badge */}
+          {/* Quick link button shortcut */}
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-zinc-200/80 rounded-full text-[11px] font-medium text-zinc-600 shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              salonos.mu/{salonProfile.slug || "fresh-cuts"}
-            </span>
+            <a
+              href={`/${salonProfile.slug || "fresh-cuts"}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100 hover:bg-zinc-200/80 border border-zinc-200/70 text-xs font-mono text-zinc-700 transition-all active:scale-95 shadow-sm"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>salonos.mu/{salonProfile.slug || "fresh-cuts"}</span>
+              <span className="text-zinc-400 font-sans text-xs">↗</span>
+            </a>
           </div>
         </div>
 
@@ -695,13 +751,38 @@ export default function SettingsClient({
                       key={cat.id}
                       type="button"
                       onClick={() => setSelectedCategory(cat.id)}
-                      className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                      onContextMenu={(e) => {
+                        if (cat.id !== "All") {
+                          e.preventDefault();
+                          handleDeleteCategory(cat.id);
+                        }
+                      }}
+                      className={`group shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all inline-flex items-center gap-1 ${
                         isSelected
                           ? "bg-[#1D1D1F] text-white shadow-sm"
                           : "bg-white border border-zinc-200/80 text-zinc-600 hover:border-zinc-300"
                       }`}
                     >
-                      {cat.name} ({cat.count})
+                      <span>
+                        {cat.name} ({cat.count})
+                      </span>
+                      {cat.id !== "All" && (
+                        <span
+                          role="button"
+                          title={`Delete "${cat.name}" category`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCategory(cat.id);
+                          }}
+                          className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px] font-bold transition-all ${
+                            isSelected
+                              ? "text-white/60 hover:text-white hover:bg-white/20"
+                              : "text-zinc-400 hover:text-rose-600 hover:bg-rose-50 opacity-60 group-hover:opacity-100"
+                          }`}
+                        >
+                          ✕
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -721,7 +802,7 @@ export default function SettingsClient({
                     className={`bg-white rounded-3xl border p-5 transition-all shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col justify-between ${
                       service.is_active
                         ? "border-zinc-200/80 hover:border-zinc-300"
-                        : "border-zinc-200/50 opacity-60 bg-zinc-50/50"
+                        : "border-zinc-200/50 opacity-60 grayscale-[20%] bg-zinc-50/50"
                     }`}
                   >
                     <div>
@@ -901,9 +982,17 @@ export default function SettingsClient({
                               {isOwner ? "Owner" : "Stylist"}
                             </span>
                           </div>
-                          <p className="text-xs text-zinc-500 mt-0.5">
-                            {member.phone || "No phone linked"}
-                          </p>
+                          {member.phone ? (
+                            <p className="text-xs text-zinc-500 mt-0.5 font-mono">
+                              {member.phone}
+                            </p>
+                          ) : (
+                            <div className="mt-1">
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md">
+                                ⚠️ No WhatsApp linked
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -1034,28 +1123,74 @@ export default function SettingsClient({
               </div>
 
               {/* Exclusion Filter Lunch Break Bar */}
-              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-lg">🍽</span>
+              <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">🍽</span>
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="text-xs font-bold text-[#1D1D1F]">
                         Daily Lunch Break (Exclusion Filter)
                       </p>
-                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
-                        Active Slot Exclusion
-                      </span>
+                      {breakWindow.enabled ? (
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                          Active Slot Exclusion
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-zinc-500 bg-zinc-200/60 px-2 py-0.5 rounded-full">
+                          Disabled
+                        </span>
+                      )}
                     </div>
                     <p className="text-[11px] text-zinc-500 mt-0.5">
-                      12:30 → 13:30 slots are automatically excluded from the booking engine without overwriting your 09:00–18:00 full-day schedule.
+                      {breakWindow.enabled
+                        ? `${breakWindow.startTime} → ${breakWindow.endTime} slots are automatically excluded from the booking engine without overwriting your 09:00–18:00 full-day schedule.`
+                        : "Lunch break pause is disabled. Bookings can be scheduled continuously during operating hours."}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="px-3 py-1.5 bg-white border border-zinc-200 rounded-xl font-mono text-xs font-bold text-zinc-800">
-                    12:30 → 13:30
-                  </span>
+                <div className="flex items-center gap-3 shrink-0 self-start sm:self-auto">
+                  {breakWindow.enabled && (
+                    <div className="flex items-center gap-1.5 text-xs bg-white border border-zinc-200/80 rounded-xl px-2.5 py-1 shadow-sm">
+                      <span className="text-[11px] font-medium text-zinc-400">From</span>
+                      <input
+                        type="time"
+                        value={breakWindow.startTime}
+                        onChange={(e) =>
+                          setBreakWindow((prev) => ({ ...prev, startTime: e.target.value }))
+                        }
+                        className="bg-transparent font-mono text-xs font-semibold text-zinc-800 outline-none"
+                      />
+                      <span className="text-zinc-300 font-semibold">→</span>
+                      <span className="text-[11px] font-medium text-zinc-400">To</span>
+                      <input
+                        type="time"
+                        value={breakWindow.endTime}
+                        onChange={(e) =>
+                          setBreakWindow((prev) => ({ ...prev, endTime: e.target.value }))
+                        }
+                        className="bg-transparent font-mono text-xs font-semibold text-zinc-800 outline-none"
+                      />
+                    </div>
+                  )}
+
+                  {/* On/Off Switch */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setBreakWindow((prev) => ({ ...prev, enabled: !prev.enabled }))
+                    }
+                    className={`relative h-6 w-11 shrink-0 rounded-full p-0.5 transition-colors ${
+                      breakWindow.enabled ? "bg-emerald-500" : "bg-zinc-300"
+                    }`}
+                    aria-label="Toggle lunch break"
+                  >
+                    <span
+                      className={`block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                        breakWindow.enabled ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
                 </div>
               </div>
 
@@ -1223,9 +1358,9 @@ export default function SettingsClient({
                     placeholder="+230 5XXX XXXX"
                     className="mt-1.5 w-full bg-zinc-50 border border-zinc-200/80 rounded-2xl px-4 py-3 text-sm font-mono focus:bg-white focus:border-zinc-400 outline-none transition"
                   />
-                  <p className="text-[11px] text-zinc-400 mt-1">
-                    Customers send booking deposits to this Mauritius Juice mobile number.
-                  </p>
+                  <span className="block text-[11px] text-zinc-400 mt-1">
+                    Must be a valid Mauritian MCB Juice number (+230 5XXX XXXX).
+                  </span>
                 </div>
 
                 <div>
@@ -1355,7 +1490,8 @@ export default function SettingsClient({
                       <span className="text-zinc-400 mr-2 font-semibold">Rs</span>
                       <input
                         type="number"
-                        value={defaultDepositAmount}
+                        value={defaultDepositAmount || ""}
+                        placeholder="200"
                         onChange={(e) => setDefaultDepositAmount(Number(e.target.value))}
                         className="w-full bg-transparent font-mono font-bold text-sm outline-none"
                       />
