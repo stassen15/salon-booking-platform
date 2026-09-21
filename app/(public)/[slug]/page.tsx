@@ -26,6 +26,8 @@ interface SalonCatalog {
     phone: string;
     address: string;
     district: string;
+    town?: string | null;
+    maps_url?: string | null;
     juice_phone: string | null;
     juice_account_name: string | null;
     currency: string;
@@ -99,6 +101,11 @@ interface BookingConfirmation {
   end_time: string;
   status: string;
   payment_status: string;
+  service_name?: string;
+  stylist_name?: string;
+  formatted_date?: string;
+  balance_due?: number;
+  total_price?: number;
 }
 
 interface DepositQuote {
@@ -159,77 +166,53 @@ function buildGoogleCalendarUrl(
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
-// ─── Icon components ──────────────────────────────────────────────────────────
-
-function ClockIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function DurationIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 10V3L4 14h7v7l9-11h-7z" />
-    </svg>
-  );
-}
-
-function PersonIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-    </svg>
-  );
-}
-
-function PhoneIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-    </svg>
-  );
-}
-
-function PayIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-    </svg>
-  );
-}
-
-function TicketIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-    </svg>
-  );
-}
-
-// ─── Detail row (confirmation) ─────────────────────────────────────────────────
-
-function DetailRow({
-  icon,
-  label,
-  value,
+function downloadICS({
+  title,
+  description,
+  location,
+  startTime,
+  endTime,
 }: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
+  title: string;
+  description: string;
+  location: string;
+  startTime: string;
+  endTime: string;
 }) {
-  return (
-    <div className="flex items-center gap-3 px-4 py-3">
-      <div className="text-zinc-400 shrink-0">{icon}</div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs text-zinc-400 font-medium">{label}</p>
-        <p className="text-sm font-semibold text-zinc-800 leading-snug">{value}</p>
-      </div>
-    </div>
-  );
+  const formatICSDate = (iso: string) =>
+    new Date(iso).toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+
+  const icsContent = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//FreshCuts//Salon Booking//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${Date.now()}@salonos.mu`,
+    `DTSTAMP:${formatICSDate(new Date().toISOString())}`,
+    `DTSTART:${formatICSDate(startTime)}`,
+    `DTEND:${formatICSDate(endTime)}`,
+    `SUMMARY:${title.replace(/[,;\n]/g, " ")}`,
+    `DESCRIPTION:${description.replace(/[,;\n]/g, " ")}`,
+    `LOCATION:${location.replace(/[,;\n]/g, " ")}`,
+    "STATUS:CONFIRMED",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+
+  const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "appointment.ics");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
+
+
 
 // ─── Boutique Salon Header ───────────────────────────────────────────────────
 
@@ -757,7 +740,14 @@ export default function BookingPage() {
         }
       }
       if (!res.ok || json.error) throw new Error(json.error ?? "Booking failed");
-      setBooking(json.booking as BookingConfirmation);
+      const createdBooking = json.booking as BookingConfirmation;
+      const matchedStaff = catalog?.staff?.find((s) => s.id === selectedStaffId);
+      createdBooking.service_name = createdBooking.service_name || selectedService.name;
+      createdBooking.stylist_name = createdBooking.stylist_name || matchedStaff?.name;
+      createdBooking.formatted_date = createdBooking.formatted_date || formatDateLabel(new Date(createdBooking.start_time));
+      createdBooking.total_price = createdBooking.total_price ?? selectedService.price_mur;
+      createdBooking.balance_due = createdBooking.balance_due ?? Math.max(0, selectedService.price_mur - (depositRequired ? depositAmount : 0));
+      setBooking(createdBooking);
       setStep(4);
     } catch (e: unknown) {
       setSubmitError(e instanceof Error ? e.message : "Something went wrong");
@@ -877,12 +867,37 @@ export default function BookingPage() {
 
   // ── Step 4: Confirmation ──
   if (step === 4 && booking) {
+    const confirmedBooking = booking;
+    const serviceName = confirmedBooking.service_name || selectedService?.name || "Service";
+    const matchedStaff = catalog?.staff?.find((s) => s.id === selectedStaffId);
+    const stylistName = confirmedBooking.stylist_name || matchedStaff?.name;
+    const formattedDate = confirmedBooking.formatted_date || formatDateLabel(new Date(confirmedBooking.start_time));
+    const formattedTime = formatTimeLocal(confirmedBooking.start_time);
+    const balanceDue = confirmedBooking.balance_due ?? (confirmedBooking.total_price !== undefined ? confirmedBooking.total_price : Math.max(0, (selectedService?.price_mur ?? 0) - (depositRequired ? depositAmount : 0)));
+    const locationText = salon.address || salon.town || fullAddress || "Mauritius";
+    const mapsUrl = salon.maps_url || (fullAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${salon.name}, ${fullAddress}`)}` : null);
+
     const calUrl = buildGoogleCalendarUrl(
-      `${selectedService?.name ?? "Appointment"} @ ${salon.name}`,
-      booking.start_time,
-      booking.end_time,
-      `${salon.name}, ${salon.address}`,
+      `${serviceName} @ ${salon.name}`,
+      confirmedBooking.start_time,
+      confirmedBooking.end_time,
+      `${salon.name}, ${locationText}`,
     );
+
+    function handleAddToGoogleCalendar() {
+      window.open(calUrl, "_blank", "noopener,noreferrer");
+    }
+
+    function handleDownloadICS() {
+      downloadICS({
+        title: `${serviceName} @ ${salon.name}`,
+        description: `Appointment for ${serviceName}${stylistName ? ` with ${stylistName}` : ""} at ${salon.name}. Booking ID: #${confirmedBooking.id.slice(0, 8).toUpperCase()}`,
+        location: `${salon.name}, ${locationText}`,
+        startTime: confirmedBooking.start_time,
+        endTime: confirmedBooking.end_time,
+      });
+    }
+
     return (
       <div className="min-h-screen w-full bg-[#F5F5F7] py-8 px-4 touch-pan-y overscroll-y-auto">
         <div className="max-w-md mx-auto">
@@ -903,43 +918,103 @@ export default function BookingPage() {
             </p>
 
             <div className="rounded-2xl bg-[#F5F5F7] border border-black/[0.04] p-4 text-left divide-y divide-zinc-200/60 mb-6">
-              <DetailRow
-                icon={<ClockIcon />}
-                label="Date & Time"
-                value={`${formatDateLabel(new Date(booking.start_time))} · ${formatTimeLocal(booking.start_time)}`}
-              />
-              <DetailRow
-                icon={<DurationIcon />}
-                label="Duration"
-                value={`${selectedService?.duration_minutes} minutes`}
-              />
-              <DetailRow icon={<PersonIcon />} label="Customer" value={booking.customer_name} />
-              <DetailRow icon={<PhoneIcon />} label="Phone" value={booking.customer_phone} />
+              {/* Service & Stylist Row */}
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-xs text-zinc-400">Service</span>
+                <span className="text-xs font-semibold text-[#1D1D1F] capitalize text-right">
+                  {confirmedBooking.service_name || serviceName} {confirmedBooking.stylist_name || stylistName ? `· with ${confirmedBooking.stylist_name || stylistName}` : ""}
+                </span>
+              </div>
+
+              {/* Date & Time */}
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-xs text-zinc-400">Date &amp; Time</span>
+                <span className="text-xs font-semibold text-[#1D1D1F] text-right font-mono">
+                  {confirmedBooking.formatted_date || formattedDate} · {formattedTime}
+                </span>
+              </div>
+
+              {/* Salon Location / Directions */}
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-xs text-zinc-400">Location</span>
+                <span className="text-xs font-medium text-zinc-700 text-right max-w-[200px] truncate">
+                  {salon.address || salon.town || locationText}
+                </span>
+              </div>
+
+              {/* Price & Balance Due */}
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-xs text-zinc-400">Amount Due at Chair</span>
+                <div className="text-right">
+                  <span className="font-mono font-bold text-xs text-[#1D1D1F]">
+                    Rs {confirmedBooking.balance_due ?? balanceDue}
+                  </span>
+                  <span className="block text-[10px] text-zinc-400">MCB Juice or Cash</span>
+                </div>
+              </div>
+
+              {/* Customer */}
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-xs text-zinc-400">Customer</span>
+                <span className="text-xs font-semibold text-zinc-700 text-right">{confirmedBooking.customer_name}</span>
+              </div>
+
+              {/* Deposit Row if paid */}
               {depositRequired && (
-                <DetailRow
-                  icon={<PayIcon />}
-                  label="Deposit"
-                  value={`Rs ${depositAmount} (Juice submitted)`}
-                />
+                <div className="flex items-center justify-between py-2.5">
+                  <span className="text-xs text-zinc-400">Deposit Paid</span>
+                  <span className="text-xs font-semibold text-emerald-600 font-mono text-right">
+                    Rs {depositAmount} (Juice submitted)
+                  </span>
+                </div>
               )}
-              <DetailRow
-                icon={<TicketIcon />}
-                label="Booking ID"
-                value={`#${booking.id.slice(0, 8).toUpperCase()}`}
-              />
+
+              {/* Booking ID */}
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-xs text-zinc-400">Booking ID</span>
+                <span className="text-xs font-mono font-semibold text-zinc-700 text-right">
+                  #{confirmedBooking.id.slice(0, 8).toUpperCase()}
+                </span>
+              </div>
             </div>
 
-            <a
-              href={calUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2.5 w-full py-3.5 px-4 bg-[#1D1D1F] text-white rounded-xl font-semibold text-sm hover:bg-black transition-all active:scale-[0.98] mb-3 shadow-sm"
-            >
-              Add to Google Calendar
-            </a>
+            {/* Calendar & Directions Action Buttons */}
+            <div className="space-y-2 mt-6">
+              <button
+                type="button"
+                onClick={handleAddToGoogleCalendar}
+                className="w-full bg-[#1D1D1F] hover:bg-black text-white text-xs font-semibold py-3.5 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+              >
+                Add to Google Calendar
+              </button>
+              <div className="flex items-center justify-center gap-4 pt-1">
+                <button
+                  type="button"
+                  onClick={handleDownloadICS}
+                  className="text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
+                >
+                  Add to Apple Calendar (.ics)
+                </button>
+                {mapsUrl && (
+                  <>
+                    <span className="text-zinc-300">·</span>
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
+                    >
+                      Get Directions ↗
+                    </a>
+                  </>
+                )}
+              </div>
+            </div>
+
             <button
+              type="button"
               onClick={resetFlow}
-              className="w-full py-2.5 text-xs text-[#86868B] hover:text-[#1D1D1F] transition-colors"
+              className="w-full py-3 mt-3 text-xs text-[#86868B] hover:text-[#1D1D1F] transition-colors"
             >
               Book another appointment
             </button>
@@ -1157,7 +1232,7 @@ export default function BookingPage() {
                               setSelectedStaffId(s.id);
                               setSelectedSlot(null);
                             }}
-                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                            className={`capitalize px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                               selectedStaffId === s.id
                                 ? "bg-[#1D1D1F] text-white border-[#1D1D1F] shadow-sm"
                                 : "bg-[#F5F5F7] text-[#1D1D1F] border-transparent hover:bg-zinc-200"
